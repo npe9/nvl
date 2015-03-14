@@ -1,7 +1,0 @@
-gdb-fortran-main.patch
-solve_PATH_MAX_issue.patch
-gdb-6.5-bz185337-resolve-tls-without-debuginfo-v2.patch
-gdb-strings.patch
-ptrace-error-verbosity.patch
-python-config.patch
-ppc64le.diff

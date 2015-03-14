@@ -1,0 +1,13 @@
+Index: b/gdb/remote.c
+===================================================================
+--- a/gdb/remote.c
++++ b/gdb/remote.c
+@@ -8675,7 +8675,7 @@
+       do_cleanups (old_chain);
+     }
+   if (mismatched > 0)
+-    warning (_("One or more sections of the remote executable does not match\n\
++    warning (_("One or more sections of the remote executable do not match\n\
+ the loaded file\n"));
+   if (args && !matched)
+     printf_filtered (_("No loaded section named '%s'.\n"), args);

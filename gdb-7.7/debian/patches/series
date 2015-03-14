@@ -1,0 +1,11 @@
+gdb-fortran-main.patch 
+#linuxthreads_signal_handling.patch
+solve_PATH_MAX_issue.patch
+gdb-6.5-bz185337-resolve-tls-without-debuginfo-v2.patch
+
+# Ubuntu/Linaro
+gdb-strings.patch
+ptrace-error-verbosity.patch
+python-config.patch
+#elf-auxv-diff
+ppc64le.diff

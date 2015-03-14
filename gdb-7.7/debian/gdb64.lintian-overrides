@@ -1,0 +1,2 @@
+# Yes, this is *supposed* to be from another architecture
+binary-from-other-architecture usr/bin/gdb64

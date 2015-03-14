@@ -1,0 +1,37 @@
+Index: b/gdb/auxv.c
+===================================================================
+--- a/gdb/auxv.c
++++ b/gdb/auxv.c
+@@ -30,6 +30,7 @@
+ 
+ #include "auxv.h"
+ #include "elf/common.h"
++#include <bits/auxv.h>
+ 
+ #include <unistd.h>
+ #include <fcntl.h>
+Index: b/gdb/gdbserver/linux-low.c
+===================================================================
+--- a/gdb/gdbserver/linux-low.c
++++ b/gdb/gdbserver/linux-low.c
+@@ -39,6 +39,7 @@
+ #include <sched.h>
+ #include <ctype.h>
+ #include <pwd.h>
++#include <bits/auxv.h>
+ #include <sys/types.h>
+ #include <dirent.h>
+ #include <sys/stat.h>
+Index: b/gdb/solib-svr4.c
+===================================================================
+--- a/gdb/solib-svr4.c
++++ b/gdb/solib-svr4.c
+@@ -48,6 +48,8 @@
+ #include "gdb_bfd.h"
+ #include "probe.h"
+ 
++#include <bits/auxv.h>
++
+ static struct link_map_offsets *svr4_fetch_link_map_offsets (void);
+ static int svr4_have_link_map_offsets (void);
+ static void svr4_relocate_main_executable (void);

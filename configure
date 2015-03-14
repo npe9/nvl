@@ -19,10 +19,16 @@ if ($tar eq "Kitten") {
   die "Unknown target $tar\n";
 }
 
+print "Is your environment terminal only? (y/n)"
+$graph= get_user("n");
+
 sub gen_run_qemu {
   # assume bzImage, initrd
   open(R,">$nvl/run") or die "Cannot write run script\n";
-  print R "qemu-system-x86_64 -m 1024 -smp 4 -kernel $nvl/bzImage -append \"console=serial\" -initrd $nvl/initrd.img -serial stdio\n";
+  if($graph eq "y")
+    print R "qemu-system-x86_64 -m 1024 -smp 4 -kernel $nvl/bzImage -append \"console=serial\" -initrd $nvl/initrd.img -serial stdio\n";
+  else
+    print R "qemu-system-x86_64 -m 1024 -smp 4 -kernel $nvl/bzImage -append \"console=serial\" -initrd $nvl/initrd.img -serial stdio -nographic\n";
   close (R);
   system "chmod +x $nvl/run";
 }

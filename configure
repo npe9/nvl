@@ -9,6 +9,14 @@ print "configuration and build scripts for you.\n\n";
 print "What is your target configuration (Kitten, KittenPalacios, LinuxPalacios) [KittenPalacios] ";
 $tar = get_user("KittenPalacios");
 
+
+print "Is your environment terminal only? (y/n) [n] ";
+$graph = get_user("n");
+
+if (not ($graph eq "y" or $graph eq "n")) {
+  die "invalid graphics option $graph\n";
+}
+
 if ($tar eq "Kitten") { 
   gen_kitten();
 } elsif ($tar eq "KittenPalacios") {
@@ -19,18 +27,29 @@ if ($tar eq "Kitten") {
   die "Unknown target $tar\n";
 }
 
-print "Is your environment terminal only? (y/n)"
-$graph= get_user("n");
 
 sub gen_run_qemu {
   # assume bzImage, initrd
   open(R,">$nvl/run") or die "Cannot write run script\n";
-  if($graph eq "y")
+  if($graph eq "n") {
     print R "qemu-system-x86_64 -m 1024 -smp 4 -kernel $nvl/bzImage -append \"console=serial\" -initrd $nvl/initrd.img -serial stdio\n";
-  else
+  } else {
     print R "qemu-system-x86_64 -m 1024 -smp 4 -kernel $nvl/bzImage -append \"console=serial\" -initrd $nvl/initrd.img -serial stdio -nographic\n";
+  }
   close (R);
   system "chmod +x $nvl/run";
+}
+
+sub gen_debug_qemu {
+  open(R, ">$nvl/debug") or die "Cannot write debug script\n";
+  print R "echo starting qemu gdb stub on port :1234\n";
+  if($graph eq "n") {
+    print R "qemu-system-x86_64 -m 1024 -smp 4 -kernel $nvl/bzImage -append \"console=serial\" -initrd $nvl/initrd.img -serial stdio -s\n";
+  } else {
+    print R "qemu-system-x86_64 -m 1024 -smp 4 -kernel $nvl/bzImage -append \"console=serial\" -initrd $nvl/initrd.img -serial stdio -nographic -s\n";
+  }
+  close (R);
+  system "chmod +x $nvl/debug";
 }
 
 sub gen_clean {
@@ -58,11 +77,13 @@ END1
   close(B);
   system "chmod +x build";
   gen_run_qemu();
+  gen_debug_qemu();
   gen_clean();
   print "Kitten setup completed with default configuration.\n";
   print "./build will build Kitten for you and leave you\n";
   print "with a bzImage and an initrd.img in $nvl.  You\n";
   print "can then run this under QEMU using ./run\n";
+  print "you can also start QEMU with a gdb stub using ./debug\n";
 }
 
 sub gen_kitten_palacios {
@@ -83,11 +104,13 @@ END1
   close(B);
   system "chmod +x build";
   gen_run_qemu();
+  gen_debug_qemu();
   gen_clean();
   print "KittenPalacios setup completed with default configuration.\n";
   print "./build will build Kitten for you and leave you\n";
   print "with a bzImage and an initrd.img in $nvl.  You\n";
   print "can then run this under QEMU using ./run\n";
+  print "you can also start QEMU with a gdb stub using ./debug\n";
 }
 
 sub gen_linux_palacios {

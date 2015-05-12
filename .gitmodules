@@ -16,3 +16,9 @@
 [submodule "src/nvl/pisces/xpmem"]
 	path = src/nvl/pisces/xpmem
 	url = http://essex.cs.pitt.edu/git/xpmem.git
+[submodule "src/nvl/linux"]
+	path = src/nvl/linux
+	url = http://github.com/torvalds/linux
+[submodule "src/nvl/leviathan"]
+	path = src/nvl/leviathan
+	url = http://essex.cs.pitt.edu/git/leviathan.git

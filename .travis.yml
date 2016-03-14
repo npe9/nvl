@@ -1,3 +1,3 @@
 language: c
 script: echo -n
-
+after_script: echo worked!

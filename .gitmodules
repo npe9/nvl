@@ -19,3 +19,6 @@
 [submodule "src/nvl/pisces/hobbes"]
 	path = src/nvl/pisces/hobbes
 	url = http://essex.cs.pitt.edu/git/hobbes.git
+[submodule "src/nvl/leviathan"]
+	path = src/nvl/leviathan
+	url = http://essex.cs.pitt.edu/git/petlib.git

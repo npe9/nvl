@@ -150,9 +150,15 @@ $hpl{package_type}	= "git";
 $hpl{basename}		= "hpl";
 $hpl{clone_cmd}[0]	= "git clone https://github.com/npe9/hpl.git";
 $hpl{clone_cmd}[1]	= "cd $hpl{basename} && git checkout kitten";
-$hpl{clone_cmd}[2]  = "echo sed -i 's%\\(TOPdir.*\=\\).*\$%\\1 $BASEDIR/$SRCDIR/$hpl{basename}%'  $hpl{basename}/Make.Kitten";
 $hpl{clone_cmd}[3]  = "sed -i 's%\\(TOPdir.*\=\\).*\$%\\1 $BASEDIR/$SRCDIR/$hpl{basename}%'  $hpl{basename}/Make.Kitten";
 push(@packages, \%hpl);
+
+my %mpi_tutorial;
+$mpi_tutorial{package_type}	= "git";
+$mpi_tutorial{basename}		= "mpitutorial";
+$mpi_tutorial{clone_cmd}[0]	= "git clone https://github.com/npe9/mpitutorial.git";
+push(@packages, \%mpi_tutorial);
+
 
 
 my %program_args = (
@@ -170,6 +176,7 @@ my %program_args = (
 	build_netcdf		=> 0,
   build_dtk		=> 0,
   build_hpl  => 0,
+  build_mpi_tutorial => 0,
 
 	build_image		=> 0,
 	build_isoimage		=> 0,
@@ -197,6 +204,7 @@ GetOptions(
 	"build-netcdf"		=> sub { $program_args{'build_netcdf'} = 1; },
 	"build-dtk"		=> sub { $program_args{'build_dtk'} = 1; },
   "build-hpl"		=> sub { $program_args{'build_hpl'} = 1; },
+  "build-mpi-tutorial"		=> sub { $program_args{'build_mpi_tutorial'} = 1; },
 	"build-image"		=> sub { $program_args{'build_image'} = 1; },
 	"build-isoimage"        => sub { $program_args{'build_isoimage'} = 1; },
 	"build-nvl-guest"	=> sub { $program_args{'build_nvl_guest'} = 1; },
@@ -631,11 +639,25 @@ if ($program_args{build_hpl}) {
 
     my $HPL_BASEDIR  = "$BASEDIR/$SRCDIR/$hpl{basename}";
 
-    chdir "$HPL_BASEDIR" or die "couldn't find hpl makefile";
+    chdir "$HPL_BASEDIR" or die "couldn't find hpl directory";
     print $HPL_BASEDIR."\n";
-    system("ls -algs");
     # Build HPL or die 
     system ("make arch=Kitten") == 0 or die "failed to make";
+
+    chdir "$BASEDIR" or die;
+}
+
+
+# Build Mpi Tutorial
+if ($program_args{build_mpi_tutorial}) {
+    print "CNL: Building Mpi Tutorial\n";
+
+    my $MPIT_BASEDIR  = "$BASEDIR/$SRCDIR/$mpi_tutorial{basename}/tutorials/mpi-hello-world/code";
+		print $MPIT_BASEDIR."\n";
+    chdir "$MPIT_BASEDIR" or die "couldn't find MPI tutorial directory";
+    print $MPIT_BASEDIR."\n";
+    # Build MPI Tutorial or die 
+    system ("make") == 0 or die "failed to make";
 
     chdir "$BASEDIR" or die;
 }
@@ -730,6 +752,11 @@ if ($program_args{build_image}) {
 		or die "error 11";
   system("cp -R $SRCDIR/test/null/null $IMAGEDIR/opt/hobbes") == 0
       or die "error 12";
+  system("cp -R $SRCDIR/hpl/bin/Kitten/xhpl $IMAGEDIR/opt/hobbes") == 0
+      or die "error 13";
+	system("cp -R $SRCDIR/src/mpitutorial/tutorials/mpi-hello-world/code/mpi_hello_world $IMAGEDIR/opt/hobbes") == 0
+		or die "error 14";
+
 
 	# Install Hobbes Enclave DTK demo files
 	system("cp -R $SRCDIR/dtk/BUILD/DataTransferKit/packages/Adapters/STKMesh/example/DataTransferKitSTKMeshAdapters_STKInlineInterpolation.exe $IMAGEDIR/opt/hobbes_enclave_demo");

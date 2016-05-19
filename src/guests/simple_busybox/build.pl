@@ -93,18 +93,15 @@ $ofed{url}		= "http://downloads.openfabrics.org/downloads/OFED/ofed-$ofed{versio
 push(@packages, \%ofed);
 
 my %ompi;
-$ompi{package_type}	= "tarball";
-$ompi{version}		= "1.10.2";
-$ompi{basename}		= "openmpi-$ompi{version}";
-$ompi{tarball}		= "$ompi{basename}.tar.bz2";
-$ompi{url}		= "http://www.open-mpi.org/software/ompi/v1.10/downloads/$ompi{tarball}";
+$ompi{package_type}	= "git";
+$ompi{basename}		= "openmpi";
+$ompi{clone_cmd}[3]	= "git clone https://github.com/npe9/ompi";
 push(@packages, \%ompi);
 
 my %pisces;
 $pisces{package_type}	= "git";
 $pisces{basename}	= "pisces";
 $pisces{src_subdir}	= "pisces";
-$pisces{clone_cmd}[0]	= "git clone http://essex.cs.pitt.edu/git/pisces.git";
 $pisces{clone_cmd}[1]	= "git clone http://essex.cs.pitt.edu/git/petlib.git";
 $pisces{clone_cmd}[2]	= "git clone http://essex.cs.pitt.edu/git/xpmem.git";
 $pisces{clone_cmd}[3]	= "git clone https://github.com/hobbesosr/kitten";

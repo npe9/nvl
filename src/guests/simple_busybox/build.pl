@@ -159,7 +159,11 @@ $mpi_tutorial{basename}		= "mpitutorial";
 $mpi_tutorial{clone_cmd}[0]	= "git clone https://github.com/npe9/mpitutorial.git";
 push(@packages, \%mpi_tutorial);
 
-
+my %hpcg;
+$hpcg{package_type}	= "git";
+$hpcg{basename}		= "hpcg";
+$hpcg{clone_cmd}[0]	= "git clone https://github.com/hpcg-benchmark/hpcg";
+push(@packages, \%hpcg);
 
 my %program_args = (
 	build_kernel		=> 0,
@@ -177,6 +181,7 @@ my %program_args = (
   build_dtk		=> 0,
   build_hpl  => 0,
   build_mpi_tutorial => 0,
+  build_hpcg => 0,
 
 	build_image		=> 0,
 	build_isoimage		=> 0,
@@ -205,6 +210,7 @@ GetOptions(
 	"build-dtk"		=> sub { $program_args{'build_dtk'} = 1; },
   "build-hpl"		=> sub { $program_args{'build_hpl'} = 1; },
   "build-mpi-tutorial"		=> sub { $program_args{'build_mpi_tutorial'} = 1; },
+  "build-hpcg"		=> sub { $program_args{'build_hpcg'} = 1; },
 	"build-image"		=> sub { $program_args{'build_image'} = 1; },
 	"build-isoimage"        => sub { $program_args{'build_isoimage'} = 1; },
 	"build-nvl-guest"	=> sub { $program_args{'build_nvl_guest'} = 1; },
@@ -269,6 +275,7 @@ sub copy_libs {
 # Download any missing package tarballs and repositories
 for (my $i=0; $i < @packages; $i++) {
 	my %pkg = %{$packages[$i]};
+	print $pkg{package_type};
 	if ($pkg{package_type} eq "tarball") {
 		if (! -e "$SRCDIR/$pkg{tarball}") {
 			print "CNL: Downloading $pkg{tarball}\n";
@@ -641,7 +648,7 @@ if ($program_args{build_hpl}) {
 
     chdir "$HPL_BASEDIR" or die "couldn't find hpl directory";
     print $HPL_BASEDIR."\n";
-    # Build HPL or die 
+    # Build HPL or die
     system ("make arch=Kitten") == 0 or die "failed to make";
 
     chdir "$BASEDIR" or die;
@@ -656,10 +663,24 @@ if ($program_args{build_mpi_tutorial}) {
 		print $MPIT_BASEDIR."\n";
     chdir "$MPIT_BASEDIR" or die "couldn't find MPI tutorial directory";
     print $MPIT_BASEDIR."\n";
-    # Build MPI Tutorial or die 
+    # Build MPI Tutorial or die
     system ("make") == 0 or die "failed to make";
 
     chdir "$BASEDIR" or die;
+}
+
+# Build Hpcg 
+if ($program_args{build_hpcg}) {
+	print "CNL: Building Hpcg\n";
+
+	my $HPCG_BASEDIR  = "$BASEDIR/$SRCDIR/$hpcg{basename}";
+	print $HPCG_BASEDIR."\n";
+	chdir "$HPCG_BASEDIR" or die "couldn't find HPCG directory";
+	print $HPCG_BASEDIR."\n";
+	# Build HPCG or die
+	system ("make") == 0 or die "failed to make";
+
+	chdir "$BASEDIR" or die;
 }
 
 
@@ -754,9 +775,10 @@ if ($program_args{build_image}) {
       or die "error 12";
   system("cp -R $SRCDIR/hpl/bin/Kitten/xhpl $IMAGEDIR/opt/hobbes") == 0
       or die "error 13";
-	system("cp -R $SRCDIR/src/mpitutorial/tutorials/mpi-hello-world/code/mpi_hello_world $IMAGEDIR/opt/hobbes") == 0
+	system("cp -R $SRCDIR/mpitutorial/tutorials/mpi-hello-world/code/mpi_hello_world $IMAGEDIR/opt/hobbes") == 0
 		or die "error 14";
-
+	system("cp -R $SRCDIR/hpcg/bin/xhpcg $IMAGEDIR/opt/hobbes") == 0
+		or die "error 15";
 
 	# Install Hobbes Enclave DTK demo files
 	system("cp -R $SRCDIR/dtk/BUILD/DataTransferKit/packages/Adapters/STKMesh/example/DataTransferKitSTKMeshAdapters_STKInlineInterpolation.exe $IMAGEDIR/opt/hobbes_enclave_demo");

@@ -1,0 +1,13 @@
+# test basic app launching and reaping.
+#!/bin/sh
+
+cd /opt/hobbes
+./start_hobbes.sh
+sleep 40
+./hobbes create_enclave ./kitten_enclave.xml || exit 1 
+# want to know which enclave I created a posteriori
+#for i in /usr/local/share/openmpi/*.txt; do
+#		cat $i | ./hobbes cat_into_file enclave-1 $i
+#done
+./hobbes launch_app -np 14 --use-smartmap --heap_size=256 --stack_size=1 enclave-1 /opt/hobbes/xhpcg
+#./hobbes cat_file enclave-1 /hpcg_log_1970.01.01.00.02.48.txt

@@ -1,4 +1,0 @@
-crash()
-{
-  echo c >/proc/sysrq-trigger
-}

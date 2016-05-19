@@ -4,7 +4,7 @@
     <cmd_line>console=pisces</cmd_line>
 
     <cpus>
-        <cores>2</cores>
+        <cores>16</cores>
     </cpus>
 
     <memory size="512" numa="-1" />

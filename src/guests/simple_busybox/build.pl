@@ -19,14 +19,14 @@ use vars qw/*name *dir *prune/;
 my $ISOLINUX = "";
 my $LDLINUX = "";
 sub wanted {
-  if(!-l && $name =~ "/isolinux.bin" && $ISOLINUX eq ""){
-    print $name."\n";
-    $ISOLINUX = $name;
-  }
-  if(!-l && ($name =~ "/ldlinux.c32" || $name =~ "/linux.c32") && $LDLINUX eq ""){
-    print $name."\n";
-    $LDLINUX = $name;
-  }
+	if(!-l && $name =~ "/isolinux.bin" && $ISOLINUX eq ""){
+		print $name."\n";
+		$ISOLINUX = $name;
+		}
+	if(!-l && ($name =~ "/ldlinux.c32" || $name =~ "/linux.c32") && $LDLINUX eq ""){
+		print $name."\n";
+		$LDLINUX = $name;
+		}
 }
 find({wanted => \&wanted}, '/usr/');
 $ISOLINUX ne "" || die "couldn't find isolinux.bin";
@@ -178,10 +178,10 @@ my %program_args = (
 	build_curl		=> 0,
 	build_hdf5		=> 0,
 	build_netcdf		=> 0,
-  build_dtk		=> 0,
-  build_hpl  => 0,
-  build_mpi_tutorial => 0,
-  build_hpcg => 0,
+	build_dtk		=> 0,
+	build_hpl		=> 0,
+	build_mpi_tutorial		=> 0,
+	build_hpcg		=> 0,
 
 	build_image		=> 0,
 	build_isoimage		=> 0,
@@ -208,9 +208,9 @@ GetOptions(
 	"build-hdf5"		=> sub { $program_args{'build_hdf5'} = 1; },
 	"build-netcdf"		=> sub { $program_args{'build_netcdf'} = 1; },
 	"build-dtk"		=> sub { $program_args{'build_dtk'} = 1; },
-  "build-hpl"		=> sub { $program_args{'build_hpl'} = 1; },
-  "build-mpi-tutorial"		=> sub { $program_args{'build_mpi_tutorial'} = 1; },
-  "build-hpcg"		=> sub { $program_args{'build_hpcg'} = 1; },
+	"build-hpl"		=> sub { $program_args{'build_hpl'} = 1; },
+	"build-mpi-tutorial"		=> sub { $program_args{'build_mpi_tutorial'} = 1; },
+	"build-hpcg"		=> sub { $program_args{'build_hpcg'} = 1; },
 	"build-image"		=> sub { $program_args{'build_image'} = 1; },
 	"build-isoimage"        => sub { $program_args{'build_isoimage'} = 1; },
 	"build-nvl-guest"	=> sub { $program_args{'build_nvl_guest'} = 1; },
@@ -225,51 +225,50 @@ EOT
 
 # Scans given directory and copies over library dependancies 
 sub copy_libs {
-    my $directory = shift;
-    my %library_list;
+	my $directory = shift;
+	my %library_list;
 
-    foreach my $file (`find $directory -type f -exec file {} \\;`) {
-        if ($file =~ /(\S+):/) {
-            foreach my $ldd_file (`ldd $1 2> /dev/null \n`) {
-                if ($ldd_file =~ /(\/\S+\/)(\S+\.so\S*) \(0x/) {
-                    my $lib = "$1$2";
-                    $library_list{$lib} = $1;
-                    while (my $newfile = readlink($lib)) {
-                        $lib =~ m/(.*)\/(.*)/;
-                        my $dir = "$1";
-                        if ($newfile =~ /^\//) {
-                            $lib = $newfile;
-                        }
-                        else {
-                            $lib = "$dir/$newfile";
-                        }
-                        $lib =~ m/(.*)\/(.*)/;
-                        $library_list{"$1\/$2"} = $1;    # store in the library
-                    }
-                }
-            }
-        }
-    }
+	foreach my $file (`find $directory -type f -exec file {} \\;`) {
+		if ($file =~ /(\S+):/) {
+			foreach my $ldd_file (`ldd $1 2> /dev/null \n`) {
+				if ($ldd_file =~ /(\/\S+\/)(\S+\.so\S*) \(0x/) {
+					my $lib = "$1$2";
+					$library_list{$lib} = $1;
+					while (my $newfile = readlink($lib)) {
+						$lib =~ m/(.*)\/(.*)/;
+						my $dir = "$1";
+						if ($newfile =~ /^\//) {
+							$lib = $newfile;
+							}
+						else {
+							$lib = "$dir/$newfile";
+							}
+						$lib =~ m/(.*)\/(.*)/;
+						$library_list{"$1\/$2"} = $1;    # store in the library
+						}
+					}
+				}
+			}
+		}
 
-    foreach my $file (sort keys %library_list) {
-        # Do not copy libraries that will be nfs mounted
-        next if $file =~ /^\/cluster_tools/;
+	foreach my $file (sort keys %library_list) {
+		# Do not copy libraries that will be nfs mounted
+		next if $file =~ /^\/cluster_tools/;
 
-        # Do not copy over libraries that already exist in the image
-        next if -e "$directory/$file";
-
-        # Create the target directory in the image, if necessary
-        if (!-e "$directory/$library_list{$file}") {
-            my $tmp = "$directory/$library_list{$file}";
-            if ($tmp =~ s#(.*/)(.*)#$1#) {
-                system("mkdir -p $tmp") == 0 or die "failed to create $tmp";
-            }
-        }
-
-        # Copy library to the image
-        system("rsync -a $file $directory/$library_list{$file}/") == 0
-          or die "failed to copy list{$file}";
-    }
+		# Do not copy over libraries that already exist in the image
+		next if -e "$directory/$file";
+		# Create the target directory in the image, if necessary
+		if (!-e "$directory/$library_list{$file}") {
+			my $tmp = "$directory/$library_list{$file}";
+			if ($tmp =~ s#(.*/)(.*)#$1#) {
+				system("mkdir -p $tmp") == 0 or die "failed to create $tmp";
+				}
+			}
+		
+		# Copy library to the image
+		system("rsync -a $file $directory/$library_list{$file}/") == 0
+			or die "failed to copy list{$file}";
+		}
 }
 
 # Download any missing package tarballs and repositories
@@ -642,31 +641,31 @@ if ($program_args{build_dtk}) {
 
 # Build Hpl
 if ($program_args{build_hpl}) {
-    print "CNL: Building Hpl\n";
+	print "CNL: Building Hpl\n";
 
-    my $HPL_BASEDIR  = "$BASEDIR/$SRCDIR/$hpl{basename}";
+	my $HPL_BASEDIR  = "$BASEDIR/$SRCDIR/$hpl{basename}";
 
-    chdir "$HPL_BASEDIR" or die "couldn't find hpl directory";
-    print $HPL_BASEDIR."\n";
-    # Build HPL or die
-    system ("make arch=Kitten") == 0 or die "failed to make";
+	chdir "$HPL_BASEDIR" or die "couldn't find hpl directory";
+	print $HPL_BASEDIR."\n";
+	# Build HPL or die
+	system ("make arch=Kitten") == 0 or die "failed to make";
 
-    chdir "$BASEDIR" or die;
+	chdir "$BASEDIR" or die;
 }
 
 
 # Build Mpi Tutorial
 if ($program_args{build_mpi_tutorial}) {
-    print "CNL: Building Mpi Tutorial\n";
+	print "CNL: Building Mpi Tutorial\n";
 
-    my $MPIT_BASEDIR  = "$BASEDIR/$SRCDIR/$mpi_tutorial{basename}/tutorials/mpi-hello-world/code";
-		print $MPIT_BASEDIR."\n";
-    chdir "$MPIT_BASEDIR" or die "couldn't find MPI tutorial directory";
-    print $MPIT_BASEDIR."\n";
-    # Build MPI Tutorial or die
-    system ("make") == 0 or die "failed to make";
+	my $MPIT_BASEDIR  = "$BASEDIR/$SRCDIR/$mpi_tutorial{basename}/tutorials/mpi-hello-world/code";
+	print $MPIT_BASEDIR."\n";
+	chdir "$MPIT_BASEDIR" or die "couldn't find MPI tutorial directory";
+	print $MPIT_BASEDIR."\n";
+	# Build MPI Tutorial or die
+	system ("make") == 0 or die "failed to make";
 
-    chdir "$BASEDIR" or die;
+	chdir "$BASEDIR" or die;
 }
 
 # Build Hpcg 
@@ -856,5 +855,5 @@ if ($program_args{build_isoimage}) {
 # Build a Palacios Guest Image for the NVL (xml config file + isoimage)
 ##############################################################################
 if ($program_args{build_nvl_guest}) {
-        system ("../../nvl/palacios/utils/guest_creator/build_vm config/nvl_guest.xml -o image.img");
+	system ("../../nvl/palacios/utils/guest_creator/build_vm config/nvl_guest.xml -o image.img");
 }

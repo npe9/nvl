@@ -94,19 +94,20 @@ push(@packages, \%ofed);
 
 my %ompi;
 $ompi{package_type}	= "git";
-$ompi{basename}		= "openmpi";
-$ompi{clone_cmd}[3]	= "git clone https://github.com/npe9/ompi";
+$ompi{basename}		= "ompi";
+$ompi{clone_cmd}[0]	= "git clone https://github.com/npe9/ompi";
 push(@packages, \%ompi);
 
 my %pisces;
 $pisces{package_type}	= "git";
 $pisces{basename}	= "pisces";
 $pisces{src_subdir}	= "pisces";
-$pisces{clone_cmd}[1]	= "git clone http://essex.cs.pitt.edu/git/petlib.git";
-$pisces{clone_cmd}[2]	= "git clone http://essex.cs.pitt.edu/git/xpmem.git";
-$pisces{clone_cmd}[3]	= "git clone https://github.com/hobbesosr/kitten";
-$pisces{clone_cmd}[4]	= "git clone http://essex.cs.pitt.edu/git/palacios.git";
-$pisces{clone_cmd}[5]	= "git clone http://essex.cs.pitt.edu/git/hobbes.git";
+$pisces{clone_cmd}[0]	= "test -d petlib || git clone http://essex.cs.pitt.edu/git/petlib.git";
+$pisces{clone_cmd}[1]	= "test -d xpmem || git clone http://essex.cs.pitt.edu/git/xpmem.git";
+$pisces{clone_cmd}[2]	= "test -d kitten || git clone https://github.com/hobbesosr/kitten";
+$pisces{clone_cmd}[3]	= "test -d palacios || git clone http://github.com/hobbesosr/palacios.git";
+$pisces{clone_cmd}[4]	= "test -d hobbes || git clone http://essex.cs.pitt.edu/git/hobbes.git";
+$pisces{clone_cmd}[5]	= "test -d pisces || git clone http://essex.cs.pitt.edu/git/pisces.git";
 push(@packages, \%pisces);
 
 my %curl;
@@ -147,7 +148,7 @@ $hpl{package_type}	= "git";
 $hpl{basename}		= "hpl";
 $hpl{clone_cmd}[0]	= "git clone https://github.com/npe9/hpl.git";
 $hpl{clone_cmd}[1]	= "cd $hpl{basename} && git checkout kitten";
-$hpl{clone_cmd}[3]  = "sed -i 's%\\(TOPdir.*\=\\).*\$%\\1 $BASEDIR/$SRCDIR/$hpl{basename}%'  $hpl{basename}/Make.Kitten";
+$hpl{clone_cmd}[2]  = "sed -i 's%\\(TOPdir.*\=\\).*\$%\\1 $BASEDIR/$SRCDIR/$hpl{basename}%'  $hpl{basename}/Make.Kitten";
 push(@packages, \%hpl);
 
 my %mpi_tutorial;
@@ -271,7 +272,6 @@ sub copy_libs {
 # Download any missing package tarballs and repositories
 for (my $i=0; $i < @packages; $i++) {
 	my %pkg = %{$packages[$i]};
-	print $pkg{package_type};
 	if ($pkg{package_type} eq "tarball") {
 		if (! -e "$SRCDIR/$pkg{tarball}") {
 			print "CNL: Downloading $pkg{tarball}\n";
@@ -420,9 +420,12 @@ if ($program_args{build_ompi}) {
 	# This means we need to be root to do a make install and will possibly screw up the host.
 	# We should really be using chroot or something better.
 	#system ("LD_LIBRARY_PATH=$BASEDIR/$SRCDIR/slurm-install/lib ./configure --prefix=/opt/$ompi{basename} --disable-shared --enable-static --with-verbs=yes") == 0
-	system ("LDFLAGS=-static ./configure --prefix=/opt/simple_busybox/$ompi{basename} --disable-shared --enable-static --disable-dlopen --without-memory-manager --disable-vt >/dev/null") == 0
+	if(! -e "configure" ){
+		system("./autogen.pl") == 0 || die "couldn't generate configure for openmpi";
+	}
+	system ("./configure --prefix=$BASEDIR/opt --enable-static --disable-shared --disable-dlopen --disable-oshmem --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind --without-memory-manager --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,topo-treematch,pmix-pmix112,pmix-cray,pmix-s2,pmix-isolated,pmix-pmix120,coll-tuned,pmix-pisces,pmix-xpmem,pmix-whitedb --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=pmix-s1,btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-pmi=$BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/ --with-alps=no") == 0
           or die "failed to configure";
-	system ("make -j 4 LDFLAGS=-all-static >/dev/null") == 0 or die "failed to make";
+	system ("make -j 4 LDFLAGS=\"$ENV{LDFLAGS} -all-static\" >/dev/null") == 0 or die "failed to make";
 	system ("make install >/dev/null") == 0 or die "failed to install";
 	chdir "$BASEDIR" or die;
 }
@@ -496,7 +499,7 @@ if ($program_args{build_pisces}) {
 
 	# Step 6: Build Pisces for Kitten
 	print "CNL: STEP 6: Building pisces/pisces\n";
-	chdir "$SRCDIR/$pisces{src_subdir}/pisces" or die;
+	chdir "$SRCDIR/$pisces{src_subdir}/pisces" or die "Couldn't change directory to $SRCDIR/$pisces{src_subdir}/pisces";
 	system "PWD=$BASEDIR/$SRCDIR/$pisces{src_subdir}/pisces KERN_PATH=$BASEDIR/$SRCDIR/$kernel{basename} make clean XPMEM=y";
 	system ("PWD=$BASEDIR/$SRCDIR/$pisces{src_subdir}/pisces KERN_PATH=$BASEDIR/$SRCDIR/$kernel{basename} make XPMEM=y") == 0
 	  or die;
@@ -671,10 +674,11 @@ if ($program_args{build_hpcg}) {
 
 	my $HPCG_BASEDIR  = "$BASEDIR/$SRCDIR/$hpcg{basename}";
 	print $HPCG_BASEDIR."\n";
+	system("cp config/hpcg/Make.Kitten_MPI_Static $HPCG_BASEDIR/setup") == 0 || die "couldn't copy hpcg config";
 	chdir "$HPCG_BASEDIR" or die "couldn't find HPCG directory";
 	print $HPCG_BASEDIR."\n";
 	# Build HPCG or die
-	system ("make") == 0 or die "failed to make";
+	system ("make arch=Kitten_MPI_Static") == 0 or die "failed to make";
 
 	chdir "$BASEDIR" or die;
 }

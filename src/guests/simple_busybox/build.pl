@@ -105,7 +105,7 @@ $pisces{src_subdir}	= "pisces";
 $pisces{clone_cmd}[0]	= "test -d petlib || git clone http://essex.cs.pitt.edu/git/petlib.git";
 $pisces{clone_cmd}[1]	= "test -d xpmem || git clone http://essex.cs.pitt.edu/git/xpmem.git";
 $pisces{clone_cmd}[2]	= "test -d kitten || git clone https://github.com/hobbesosr/kitten";
-$pisces{clone_cmd}[3]	= "test -d palacios || git clone http://github.com/hobbesosr/palacios.git";
+$pisces{clone_cmd}[3]	= "test -d palacios || git clone http://essex.cs.pitt.edu/git/palacios";
 $pisces{clone_cmd}[4]	= "test -d hobbes || git clone http://essex.cs.pitt.edu/git/hobbes.git";
 $pisces{clone_cmd}[5]	= "test -d pisces || git clone http://essex.cs.pitt.edu/git/pisces.git";
 push(@packages, \%pisces);
@@ -745,7 +745,7 @@ if ($program_args{build_image}) {
 
 	# Install OpenMPI into image
 	mkdir "$IMAGEDIR/opt/simple_busybox";
-	system("cp -R /opt/simple_busybox/$ompi{basename} $IMAGEDIR/opt/simple_busybox") == 0
+	system("cp -R $BASEDIR/opt/simple_busybox/$ompi{basename} $IMAGEDIR/opt/simple_busybox") == 0
 		or die "Failed to rsync OpenMPI to $IMAGEDIR";
 
 	# Install Pisces / Hobbes / Leviathan into image

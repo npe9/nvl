@@ -506,7 +506,9 @@ if ($program_args{build_pisces}) {
 	chdir "$SRCDIR/$pisces{src_subdir}/hobbes/libhobbes" or die;
 	system ("XPMEM_PATH=../../xpmem PALACIOS_PATH=../../palacios PISCES_PATH=../../pisces PETLIB_PATH=../../petlib WHITEDB_PATH=../whitedb-0.7.3 make clean") == 0 or die "failed to clean";
 	system ("XPMEM_PATH=../../xpmem PALACIOS_PATH=../../palacios PISCES_PATH=../../pisces PETLIB_PATH=../../petlib WHITEDB_PATH=../whitedb-0.7.3 make") == 0 or die "failed to make";
-	system ("mkdir lib && cp libhobbes.a lib/libpmi.a") == 0 or die "couldn't set up pmi library";
+	-e "lib" or system("mkdir lib") == 0 or die "couldn't make libhobbes lib directory";
+	-e "include" or system("mkdir include") == 0 or die "couldn't make libhobbes include directory";
+	system ("cp libhobbes.a lib/libpmi.a") == 0 or die "couldn't set up pmi library";
 	chdir "$BASEDIR" or die;
 	print "CNL: STEP 8: Done building pisces/hobbes/libhobbes\n";
 
@@ -566,7 +568,7 @@ if ($program_args{build_ompi}) {
 		system("./autogen.pl") == 0 || die "couldn't generate configure for openmpi";
 	}
 	if(! -e "./config.status" || $program_args{force_configure}){
-	  system ("./configure --prefix=$BASEDIR/opt/simple_busybox --enable-static --disable-shared --disable-dlopen --disable-oshmem --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind --without-memory-manager --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,topo-treematch,pmix-pmix112,pmix-cray,pmix-s2,pmix-isolated,pmix-pmix120,coll-tuned,pmix-pisces,pmix-xpmem,pmix-whitedb,rte-orte --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=pmix-s1,btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-pmi=$BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/ --with-alps=no") == 0
+	  system ("./configure --prefix=$BASEDIR/opt/simple_busybox/$ompi{basename} --enable-static --disable-shared --disable-dlopen --disable-oshmem --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind --without-memory-manager --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,topo-treematch,pmix-pmix112,pmix-cray,pmix-s2,pmix-isolated,pmix-pmix120,coll-tuned,pmix-pisces,pmix-xpmem,pmix-whitedb,rte-orte --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=pmix-s1,btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-pmi=$BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/ --with-alps=no") == 0
 		or die "failed to configure";
 	}
 	system ("make -j 4 LDFLAGS=\"$ENV{LDFLAGS} -all-static\" >/dev/null") == 0 or die "failed to make";

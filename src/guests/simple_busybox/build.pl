@@ -105,7 +105,7 @@ $pisces{src_subdir}	= "pisces";
 $pisces{clone_cmd}[0]	= "test -d petlib || git clone http://essex.cs.pitt.edu/git/petlib.git";
 $pisces{clone_cmd}[1]	= "test -d xpmem || git clone http://essex.cs.pitt.edu/git/xpmem.git";
 $pisces{clone_cmd}[2]	= "test -d kitten || git clone https://github.com/hobbesosr/kitten";
-$pisces{clone_cmd}[3]	= "test -d palacios || git clone http://essex.cs.pitt.edu/git/palacios";
+$pisces{clone_cmd}[3]	= "test -d palacios || git clone http://essex.cs.pitt.edu/git/palacios.git";
 $pisces{clone_cmd}[4]	= "test -d hobbes || git clone http://essex.cs.pitt.edu/git/hobbes.git";
 $pisces{clone_cmd}[5]	= "test -d pisces || git clone http://essex.cs.pitt.edu/git/pisces.git";
 push(@packages, \%pisces);
@@ -423,7 +423,7 @@ if ($program_args{build_ompi}) {
 	if(! -e "configure" ){
 		system("./autogen.pl") == 0 || die "couldn't generate configure for openmpi";
 	}
-	system ("./configure --prefix=$BASEDIR/opt --enable-static --disable-shared --disable-dlopen --disable-oshmem --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind --without-memory-manager --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,topo-treematch,pmix-pmix112,pmix-cray,pmix-s2,pmix-isolated,pmix-pmix120,coll-tuned,pmix-pisces,pmix-xpmem,pmix-whitedb,rte-orte --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=pmix-s1,btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-pmi=$BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/ --with-alps=no") == 0
+	system ("./configure --prefix=$BASEDIR/opt/simple_busybox --enable-static --disable-shared --disable-dlopen --disable-oshmem --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind --without-memory-manager --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,topo-treematch,pmix-pmix112,pmix-cray,pmix-s2,pmix-isolated,pmix-pmix120,coll-tuned,pmix-pisces,pmix-xpmem,pmix-whitedb,rte-orte --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=pmix-s1,btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-pmi=$BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/ --with-alps=no") == 0
           or die "failed to configure";
 	system ("make -j 4 LDFLAGS=\"$ENV{LDFLAGS} -all-static\" >/dev/null") == 0 or die "failed to make";
 	system ("make install >/dev/null") == 0 or die "failed to install";

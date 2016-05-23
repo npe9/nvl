@@ -32,4 +32,8 @@ bzImage
 # Debug files
 *.dSYM/
 
+# GTAGS files
+GPATH
+GRTAGS
+GTAGS
 

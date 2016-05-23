@@ -37,3 +37,7 @@ GPATH
 GRTAGS
 GTAGS
 
+# configure prefix for simple_busybox
+src/guests/simple_busybox/opt/
+
+

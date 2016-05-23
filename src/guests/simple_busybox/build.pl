@@ -526,7 +526,7 @@ if ($program_args{build_pisces}) {
 	chdir "$SRCDIR/$pisces{src_subdir}/hobbes/libhobbes" or die;
 	system ("XPMEM_PATH=../../xpmem PALACIOS_PATH=../../palacios PISCES_PATH=../../pisces PETLIB_PATH=../../petlib WHITEDB_PATH=../whitedb-0.7.3 make clean") == 0 or die "failed to clean";
 	system ("XPMEM_PATH=../../xpmem PALACIOS_PATH=../../palacios PISCES_PATH=../../pisces PETLIB_PATH=../../petlib WHITEDB_PATH=../whitedb-0.7.3 make") == 0 or die "failed to make";
-	system ("mkdir include && cp pmi.h include && cp libhobbes.a libpmi.a") == 0 or die "couldn't set up pmi library";
+	system ("mkdir include && cp pmi.h include && mkdir lib && cp libhobbes.a lib/libpmi.a") == 0 or die "couldn't set up pmi library";
 	chdir "$BASEDIR" or die;
 	print "CNL: STEP 8: Done building pisces/hobbes/libhobbes\n";
 

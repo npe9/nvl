@@ -564,7 +564,7 @@ if ($program_args{build_ompi}) {
 	# We should really be using chroot or something better.
 	#system ("LD_LIBRARY_PATH=$BASEDIR/$SRCDIR/slurm-install/lib ./configure --prefix=/opt/$ompi{basename} --disable-shared --enable-static --with-verbs=yes") == 0
 	system("cp opal/mca/pmix/pmix120/pmix/include/pmi.h $BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/include") == 0 or die "couldn't copy pmi.h";
-	system("cp $BASEDIR/$SRCDIR/pisces/xpmem/include/xpmem.h opal/mca/btl/vader") == 0 or die "couldn't copy xpmem.h";
+	system("cp $BASEDIR/$SRCDIR/pisces/xpmem/include/xpmem.h ompi/mca/rte/pisces") == 0 or die "couldn't copy xpmem.h";
 	if(! -e "configure" ){
 		system("./autogen.pl") == 0 || die "couldn't generate configure for openmpi";
 	}

@@ -12,6 +12,7 @@ addons:
     packages:
     - gcc-4.8
     - mtools
+    - gfortran
     - genisoimage
     - syslinux
     - qemu

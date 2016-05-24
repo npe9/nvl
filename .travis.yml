@@ -13,6 +13,8 @@ addons:
     - gcc-4.8
     - mtools
     - gfortran
+    - libblas-dev
+    - liblapack-dev
     - genisoimage
     - syslinux
     - qemu

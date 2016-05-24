@@ -654,7 +654,7 @@ if ($program_args{build_hpl}) {
 	print "CNL: Building Hpl\n";
 
 	my $HPL_BASEDIR  = "$BASEDIR/$SRCDIR/$hpl{basename}";
-
+	local $ENV{PATH} = "$ENV{PATH}:$BASEDIR/opt/simple_busybox/ompi/bin";
 	chdir "$HPL_BASEDIR" or die "couldn't find hpl directory";
 	print $HPL_BASEDIR."\n";
 	# Build HPL or die
@@ -669,7 +669,7 @@ if ($program_args{build_mpi_tutorial}) {
 	print "CNL: Building Mpi Tutorial\n";
 
 	my $MPIT_BASEDIR  = "$BASEDIR/$SRCDIR/$mpi_tutorial{basename}/tutorials/mpi-hello-world/code";
-	print $MPIT_BASEDIR."\n";
+	local $ENV{PATH} = "$ENV{PATH}:$BASEDIR/opt/simple_busybox/ompi/bin";
 	chdir "$MPIT_BASEDIR" or die "couldn't find MPI tutorial directory";
 	print $MPIT_BASEDIR."\n";
 	# Build MPI Tutorial or die
@@ -682,7 +682,9 @@ if ($program_args{build_mpi_tutorial}) {
 if ($program_args{build_hpcg}) {
 	print "CNL: Building Hpcg\n";
 
+
 	my $HPCG_BASEDIR  = "$BASEDIR/$SRCDIR/$hpcg{basename}";
+	local $ENV{PATH} = "$ENV{PATH}:$BASEDIR/opt/simple_busybox/ompi/bin";
 	print $HPCG_BASEDIR."\n";
 	system("cp config/hpcg/Make.Kitten_MPI_Static $HPCG_BASEDIR/setup") == 0 || die "couldn't copy hpcg config";
 	chdir "$HPCG_BASEDIR" or die "couldn't find HPCG directory";

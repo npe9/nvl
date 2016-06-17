@@ -416,6 +416,27 @@ if ($program_args{build_ofed}) {
 	chdir "$BASEDIR" or die;
 }
 
+# Build OpenMPI
+if ($program_args{build_ompi}) {
+	print "CNL: Building OpenMPI $ompi{basename}\n";
+	chdir "$SRCDIR/$ompi{basename}" or die;
+	# This is a horrible hack. We're installing OpenMPI into /opt on the host.
+	# This means we need to be root to do a make install and will possibly screw up the host.
+	# We should really be using chroot or something better.
+	#system ("LD_LIBRARY_PATH=$BASEDIR/$SRCDIR/slurm-install/lib ./configure --prefix=/opt/$ompi{basename} --disable-shared --enable-static --with-verbs=yes") == 0
+	system("cp opal/mca/pmix/pmix120/pmix/include/pmi.h $BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/include") == 0 or die "couldn't copy pmi.h";
+	if(! -e "configure" ){
+		system("./autogen.pl") == 0 || die "couldn't generate configure for openmpi";
+	}
+	if(! -e "./config.status" || $program_args{force_configure}){
+	  system ("./configure --prefix=$BASEDIR/opt/simple_busybox/$ompi{basename} --enable-static --disable-shared --disable-dlopen --disable-oshmem --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind --without-memory-manager --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,topo-treematch,pmix-pmix112,pmix-cray,pmix-s2,pmix-isolated,pmix-pmix120,coll-tuned,pmix-pisces,pmix-whitedb,rte-orte,pmix-s1,reachable-netlink --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=pmix-xpmem,btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-alps=no") == 0
+		or die "failed to configure";
+	}
+	system ("make -j 4 LDFLAGS=\"$ENV{LDFLAGS} -all-static\" >/dev/null") == 0 or die "failed to make";
+	system ("make install ") == 0 or die "failed to install";
+	chdir "$BASEDIR" or die;
+}
+
 # Build Pisces
 if ($program_args{build_pisces}) {
 	print "CNL: Building Pisces\n";
@@ -508,7 +529,7 @@ if ($program_args{build_pisces}) {
 	system ("XPMEM_PATH=../../xpmem PALACIOS_PATH=../../palacios PISCES_PATH=../../pisces PETLIB_PATH=../../petlib WHITEDB_PATH=../whitedb-0.7.3 make") == 0 or die "failed to make";
 	-e "lib" or system("mkdir lib") == 0 or die "couldn't make libhobbes lib directory";
 	-e "include" or system("mkdir include") == 0 or die "couldn't make libhobbes include directory";
-	system ("cp libhobbes.a lib/libpmi.a") == 0 or die "couldn't set up pmi library";
+	#system ("cp libhobbes.a lib/libpmi.a") == 0 or die "couldn't set up pmi library";
 	chdir "$BASEDIR" or die;
 	print "CNL: STEP 8: Done building pisces/hobbes/libhobbes\n";
 
@@ -784,14 +805,12 @@ if ($program_args{build_image}) {
 		or die "error 10";
 	system("cp -R $SRCDIR/pisces/hobbes/examples/apps/pmi/test_pmi_hello $IMAGEDIR/opt/hobbes") == 0
 		or die "error 11";
-  system("cp -R $SRCDIR/test/null/null $IMAGEDIR/opt/hobbes") == 0
-      or die "error 12";
-  system("cp -R $SRCDIR/hpl/bin/Kitten/xhpl $IMAGEDIR/opt/hobbes") == 0
-      or die "error 13";
+	system("cp -R $SRCDIR/test/null/null $IMAGEDIR/opt/hobbes") == 0
+		or die "error 12";
 	system("cp -R $SRCDIR/mpitutorial/tutorials/mpi-hello-world/code/mpi_hello_world $IMAGEDIR/opt/hobbes") == 0
-		or die "error 14";
+		or die "error 13";
 	system("cp -R $SRCDIR/hpcg/bin/xhpcg $IMAGEDIR/opt/hobbes") == 0
-		or die "error 15";
+		or die "error 14";
 
 	# Install Hobbes Enclave DTK demo files
 	system("cp -R $SRCDIR/dtk/BUILD/DataTransferKit/packages/Adapters/STKMesh/example/DataTransferKitSTKMeshAdapters_STKInlineInterpolation.exe $IMAGEDIR/opt/hobbes_enclave_demo");

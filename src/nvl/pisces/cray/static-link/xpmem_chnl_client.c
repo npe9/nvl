@@ -52,6 +52,7 @@ xemem_segid_t cmdq_segid;
 hcq_handle_t hcq = HCQ_INVALID_HANDLE;
 struct memseg_list *mt = NULL;
 
+int handle_ioctl (int device, unsigned long int request, void *arg);
 
 void
 allgather (void *in, void *out, int len)
@@ -71,7 +72,7 @@ allgather (void *in, void *out, int len)
 int
 pmi_finalize (void)
 {
-  int retlen;
+  //int retlen;
   hcq_cmd_t cmd = HCQ_INVALID_CMD;
   cmd = hcq_cmd_issue (hcq, PMI_IOC_FINALIZE, 0, NULL);
   hcq_cmd_complete (hcq, cmd);
@@ -81,7 +82,7 @@ pmi_finalize (void)
 int
 pmi_barrier (void)
 {
-  int retlen;
+  //int retlen;
   hcq_cmd_t cmd = HCQ_INVALID_CMD;
   cmd = hcq_cmd_issue (hcq, PMI_IOC_BARRIER, 0, NULL);
   hcq_cmd_complete (hcq, cmd);
@@ -112,12 +113,12 @@ pmi_barrier (void)
 
 int __real_open (const char *pathname, int flags);
 
-void
+int
 kgni_init (const char *pathname, int flags)
 {
   static int already_init = 0;
 
-  hcq_cmd_t cmd = HCQ_INVALID_CMD;
+  //hcq_cmd_t cmd = HCQ_INVALID_CMD;
   if (!already_init)
     {
       mt = list_new ();
@@ -132,6 +133,7 @@ kgni_init (const char *pathname, int flags)
 	}
       already_init = 1;
     }
+  return 0;
 }
 
 /* We need to start cmd queue for PMI calls or kgni ioctls */
@@ -144,14 +146,16 @@ __wrap_open (const char *pathname, int flags, ...)
     {
       //client_fd = __real_open ("/home/smukher/temp", flags);
       client_fd = 120;
-      kgni_init (pathname, flags);
+      if(kgni_init (pathname, flags) < 0)
+        return -1;
       return client_fd;
     }
   else if (strncmp (pathname, "/dev/pmi", 8) == 0)
     {
       //pmi_fd = __real_open ("/home/smukher/temp1", flags);
       pmi_fd = 121;
-      kgni_init (pathname, flags);
+      if(kgni_init (pathname, flags) < 0)
+        return -1;
       return pmi_fd;
     }
   else
@@ -165,7 +169,7 @@ int __real_ioctl (int fd, int request, void *data);
 int
 __wrap_ioctl (int fd, unsigned long int request, ...)
 {
-  char *msg;
+  //char *msg;
   va_list args;
   void *argp;
 
@@ -200,19 +204,19 @@ pack_args (unsigned long int request, void *args)
 {
   gni_nic_setattr_args_t *nic_set_attr1;
   gni_mem_register_args_t *mem_reg_attr;
-  gni_mem_register_args_t *mem_reg_attr1;
+  //gni_mem_register_args_t *mem_reg_attr1;
   gni_cq_destroy_args_t *cq_destroy_args;
   gni_cq_create_args_t *cq_create_args;
   gni_cq_wait_event_args_t *cq_wait_event_args;
   gni_post_rdma_args_t *post_rdma_args;
   gni_nic_fmaconfig_args_t *fmaconfig_args;
-  void *reg_buf;
+  //void *reg_buf;
   void *rdma_post_tmpbuf;
   void *cq_tmpbuf;
   hcq_cmd_t cmd = HCQ_INVALID_CMD;
-  gni_mem_segment_t *segment;	/*comes from gni_pub.h */
-  int i;
-  uint32_t seg_cnt;
+  //gni_mem_segment_t *segment;	/*comes from gni_pub.h */
+  //int i;
+  //uint32_t seg_cnt;
   xemem_segid_t cq_index_seg;
   xemem_segid_t reg_mem_seg;
   xemem_segid_t my_mem_seg;
@@ -220,7 +224,7 @@ pack_args (unsigned long int request, void *args)
   xemem_segid_t rdma_post_seg;
   uint32_t len = 0;
   uint64_t save_local_addr;
-  int *rc;
+  //int *rc;
 
   /* PMI ioctls args */
   pmi_allgather_args_t *gather_arg;
@@ -239,12 +243,12 @@ pack_args (unsigned long int request, void *args)
 	hcq_cmd_issue (hcq, GNI_IOC_NIC_SETATTR,
 		       sizeof (gni_nic_setattr_args_t), nic_set_attr1);
 
-      fprintf (stdout, "cmd = %0x data size %d\n", cmd,
+      fprintf (stdout, "cmd = %0lx data size %lu\n", cmd,
 	       sizeof (nic_set_attr1));
       nic_set_attr1 = hcq_get_ret_data (hcq, cmd, &len);
       hcq_cmd_complete (hcq, cmd);
       memcpy (args, (void *) nic_set_attr1, sizeof (nic_set_attr1));
-      printf ("after NIC attach  dump segids %llu  %llu %llu %llu\n",
+      printf ("after NIC attach  dump segids %lu  %lu %lu %lu\n",
 	      nic_set_attr1->fma_window, nic_set_attr1->fma_window_nwc,
 	      nic_set_attr1->fma_window_get, nic_set_attr1->fma_ctrl);
       struct xemem_addr win_addr;
@@ -257,14 +261,14 @@ pack_args (unsigned long int request, void *args)
       void *fma_put = NULL;
       void *fma_get = NULL;
       void *fma_ctrl = NULL;
-      void *fma_nc = NULL;
+      //void *fma_nc = NULL;
 
       xemem_apid_t apid;
 
-      xemem_segid_t fma_win_seg;
-      xemem_segid_t fma_put_seg;
-      xemem_segid_t fma_get_seg;
-      xemem_segid_t fma_ctrl_seg;
+      //xemem_segid_t fma_win_seg;
+      //xemem_segid_t fma_put_seg;
+      //xemem_segid_t fma_get_seg;
+      //xemem_segid_t fma_ctrl_seg;
       hcq_cmd_t cmd = HCQ_INVALID_CMD;
 
 
@@ -272,7 +276,7 @@ pack_args (unsigned long int request, void *args)
       if (apid <= 0)
 	{
 	  xemem_remove (nic_set_attr1->fma_window);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
       win_addr.apid = apid;
@@ -284,7 +288,7 @@ pack_args (unsigned long int request, void *args)
 	{
 	  xemem_release (apid);
 	  xemem_remove (nic_set_attr1->fma_window);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
       apid = xemem_get (nic_set_attr1->fma_window_nwc, XEMEM_RDWR);
@@ -310,7 +314,7 @@ pack_args (unsigned long int request, void *args)
       if (apid <= 0)
 	{
 	  xemem_remove (nic_set_attr1->fma_window_get);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
       get_addr.apid = apid;
@@ -322,13 +326,13 @@ pack_args (unsigned long int request, void *args)
 	{
 	  xemem_release (apid);
 	  xemem_remove (nic_set_attr1->fma_window_get);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
       apid = xemem_get (nic_set_attr1->fma_ctrl, XEMEM_RDWR);
       if (apid <= 0)
 	{
 	  xemem_remove (nic_set_attr1->fma_ctrl);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
       ctrl_addr.apid = apid;
@@ -340,13 +344,13 @@ pack_args (unsigned long int request, void *args)
 	{
 	  xemem_release (apid);
 	  xemem_remove (nic_set_attr1->fma_ctrl);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
-      nic_set_attr1->fma_window = fma_win;
-      nic_set_attr1->fma_window_nwc = fma_put;
-      nic_set_attr1->fma_window_get = fma_get;
-      nic_set_attr1->fma_ctrl = fma_ctrl;
+      nic_set_attr1->fma_window = (uint64_t)fma_win;
+      nic_set_attr1->fma_window_nwc = (uint64_t)fma_put;
+      nic_set_attr1->fma_window_get = (uint64_t)fma_get;
+      nic_set_attr1->fma_ctrl = (uint64_t)fma_ctrl;
       memcpy (args, (void *) nic_set_attr1, sizeof (gni_nic_setattr_args_t));
       break;
     case GNI_IOC_CQ_CREATE:
@@ -367,7 +371,7 @@ pack_args (unsigned long int request, void *args)
          cq_create_args->mem_hndl.qword1, cq_create_args->mem_hndl.qword2);
        */
       cq_tmpbuf = cq_create_args->queue;	/* preserve cq space */
-      cq_seg = list_find_segid_by_vaddr (mt, cq_create_args->queue);
+      cq_seg = list_find_segid_by_vaddr (mt, (uint64_t)cq_create_args->queue);
       cq_create_args->queue = (gni_cq_entry_t *) cq_seg;
       cmd =
 	hcq_cmd_issue (hcq, GNI_IOC_CQ_CREATE, sizeof (gni_cq_create_args_t),
@@ -387,7 +391,7 @@ pack_args (unsigned long int request, void *args)
       memcpy (mem_reg_attr, args, sizeof (gni_mem_register_args_t));
 
       reg_mem_seg =
-	xemem_make (mem_reg_attr->address, mem_reg_attr->length, NULL);
+	xemem_make ((void*)mem_reg_attr->address, mem_reg_attr->length, NULL);
       list_add_element (mt, &reg_mem_seg, mem_reg_attr->address,
 			mem_reg_attr->length);
       //list_print(mt);
@@ -416,8 +420,8 @@ pack_args (unsigned long int request, void *args)
        */
       cq_wait_event_args = (gni_cq_wait_event_args_t *) args;
       cq_index_seg =
-	list_find_segid_by_vaddr (mt, cq_wait_event_args->next_event_ptr);
-      cq_wait_event_args->next_event_ptr = cq_index_seg;
+	list_find_segid_by_vaddr (mt, (uint64_t)cq_wait_event_args->next_event_ptr);
+      cq_wait_event_args->next_event_ptr = (void*)cq_index_seg;
       cmd =
 	hcq_cmd_issue (hcq, GNI_IOC_CQ_WAIT_EVENT,
 		       sizeof (gni_cq_wait_event_args_t), cq_wait_event_args);
@@ -529,7 +533,7 @@ pack_args (unsigned long int request, void *args)
 		       sizeof (gni_post_rdma_args_t) +
 		       sizeof (gni_post_descriptor_t), rdma_post_tmpbuf);
 
-      rc = hcq_get_ret_data (hcq, cmd, &len);
+      //rc = hcq_get_ret_data (hcq, cmd, &len);
       hcq_cmd_complete (hcq, cmd);
       post_rdma_args->post_desc->local_addr = (uint64_t) save_local_addr;
       free (rdma_post_tmpbuf);
@@ -600,13 +604,14 @@ pack_args (unsigned long int request, void *args)
       break;
     default:
       fprintf (stdout,
-	       "Called default case in client side for kgni ioctl %llu\n",
+	       "Called default case in client side for kgni ioctl %lu\n",
 	       request);
       break;
     }
   return 0;
 }
 
+int unpack_args (unsigned long int request, void *args);
 
 int
 handle_ioctl (int device, unsigned long int request, void *arg)
@@ -620,8 +625,8 @@ handle_ioctl (int device, unsigned long int request, void *arg)
 int
 unpack_args (unsigned long int request, void *args)
 {
-  gni_nic_setattr_args_t *nic_set_attr;
-  gni_cq_wait_event_args_t *cq_wait_event_args;
+  //gni_nic_setattr_args_t *nic_set_attr;
+  //gni_cq_wait_event_args_t *cq_wait_event_args;
   switch (request)
     {
     case GNI_IOC_NIC_SETATTR:

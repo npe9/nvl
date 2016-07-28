@@ -104,7 +104,7 @@ struct memseg_list* list_add_element(struct memseg_list* s, xemem_segid_t *segid
   else
     {
       /* printf("List not empty, adding element to tail\n"); */
-      s->tail->next =  p;
+      s->tail->next =  (void*)p;
       s->tail = p;
     }
 
@@ -136,9 +136,9 @@ struct memseg_list* list_remove_element( struct memseg_list* s )
     }
 
   h = s->head;
-  p = h->next;
+  p = (void*)h->next;
   free(h);
-  s->head = p;
+  s->head = (void*)p;
   if( NULL == s->head )  s->tail = s->head;   /* The element tail was pointing to is free(), so we need an update */
 
   return s;
@@ -177,7 +177,7 @@ void list_print( const struct memseg_list* ps )
 
   if( ps )
     {
-      for( p = ps->head; p; p = p->next )
+	for(p = ps->head; p; p = (void*)p->next )
 	{
 	  list_print_element(p);
 	}
@@ -193,7 +193,7 @@ xemem_segid_t   list_find_segid_by_vaddr(const struct memseg_list* ps, uint64_t 
 
   if( ps )
     {
-      for( p = ps->head; p; p = p->next )
+	for( p = ps->head; p; p = (void*)p->next )
 	{
 		if((p->address == addr) || ((addr > p->address) && (addr <  p->address + p->length)))
 		{
@@ -201,10 +201,10 @@ xemem_segid_t   list_find_segid_by_vaddr(const struct memseg_list* ps, uint64_t 
 		}
 			
 	}
-	fprintf(stderr, "failed to find segid for addr %p\n", addr);
+	fprintf(stderr, "failed to find segid for addr %p\n", (void*)addr);
 	return -1;
     }
-
+  return -1;
 }
 
 
@@ -215,7 +215,7 @@ uint64_t   list_find_vaddr_by_segid(const struct memseg_list* ps, xemem_segid_t 
 
   if( ps )
     {
-      for( p = ps->head; p; p = p->next )
+	for( p = ps->head; p; p = (void*)p->next )
 	{
 		if(p->segid == *segid)
 		{
@@ -225,15 +225,15 @@ uint64_t   list_find_vaddr_by_segid(const struct memseg_list* ps, xemem_segid_t 
 	}
 	return -1;
     }
-
+  return -1;
 }
 
 void list_print_element(const struct xpmem_seg* p )
 {
   if( p ) 
     {
-      printf("Address = %p\n", p->address);
-      printf("segid = %llu\n", p->segid);
+      printf("Address = %p\n", (void*)p->address);
+      printf("segid = %lu\n", (uint64_t)p->segid);
     }
   else
     {

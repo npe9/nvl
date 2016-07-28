@@ -23,6 +23,7 @@
 
 #include <dbapi.h>
 #include <dballoc.h>
+#include <ctype.h>
 
 //
 #include "gni_priv.h"
@@ -159,7 +160,7 @@ static uint32_t
 get_cpunum (void)
 {
   int i, j;
-  uint32_t cpu_num;
+  uint32_t cpu_num = 0;
 
   cpu_set_t coremask;
 
@@ -183,10 +184,10 @@ get_cpunum (void)
 	    }
 	  else
 	    {
+	      cpu_num = i;
 	      fprintf (stdout,
 		       "This thread is bound to multiple CPUs(%d).  Using lowest numbered CPU(%d).",
 		       run + 1, cpu_num);
-	      cpu_num = i;
 	    }
 	}
     }
@@ -254,41 +255,41 @@ main (int argc, char *argv[])
   int device;
   int status;
   gni_nic_setattr_args_t nic_set_attr;
-  gni_nic_nttconfig_args_t ntt_conf_attr;
-  gni_nic_vmdhconfig_args_t vmdh_conf_attr;
-  gni_nic_fmaconfig_args_t fma_attr;
-  gni_ep_postdata_args_t ep_post_attr;
-  gni_ep_postdata_test_args_t ep_posttest_attr;
-  gni_ep_postdata_term_args_t ep_postterm_attr;
+  //gni_nic_nttconfig_args_t ntt_conf_attr;
+  //gni_nic_vmdhconfig_args_t vmdh_conf_attr;
+  //gni_nic_fmaconfig_args_t fma_attr;
+  //gni_ep_postdata_args_t ep_post_attr;
+  //gni_ep_postdata_test_args_t ep_posttest_attr;
+  // gni_ep_postdata_term_args_t ep_postterm_attr;
   gni_mem_register_args_t *mem_register_attr;
-  gni_mem_deregister_args_t mem_dereg_attr;
+  //gni_mem_deregister_args_t mem_dereg_attr;
   gni_cq_create_args_t *cq_create_attr;
-  gni_cq_wait_event_args_t cq_wait_attr;
-  gni_cq_destroy_args_t cq_destroy_attr;
+  //gni_cq_wait_event_args_t cq_wait_attr;
+  //gni_cq_destroy_args_t cq_destroy_attr;
   gni_post_rdma_args_t post_attr;
   gni_post_descriptor_t post_desc;
   gni_nic_fmaconfig_args_t *fmaconf_arg;
-  uint8_t *send_data;
-  gni_mem_handle_t send_mhndl;
-  uint8_t *rcv_data;
-  gni_mem_handle_t rcv_mhndl;
-  gni_mem_handle_t peer_rcv_mhndl;
-  uint8_t *peer_rcv_data;
-  gni_cq_entry_t *event_data;
-  char send_buff[256];
-  char rcv_buff[256];
-  void *fma_window;
-  void *reg_addr = NULL;
-  uint64_t *get_window;
-  uint64_t gcw, get_window_offset;
-  int i, max_rank, j;
-  FILE *hf;
-  int *pe_array;
-  gni_post_state_t *state_array;
-  int connected = 0;
-  void *my_mem;
-  int next_event_idx = 0;
-  gni_mem_segment_t mem_segments[3];
+  //uint8_t *send_data;
+  //gni_mem_handle_t send_mhndl;
+  //uint8_t *rcv_data;
+  //gni_mem_handle_t rcv_mhndl;
+  //gni_mem_handle_t peer_rcv_mhndl;
+  //uint8_t *peer_rcv_data;
+  //gni_cq_entry_t *event_data;
+  //char send_buff[256];
+  //char rcv_buff[256];
+  //void *fma_window;
+  //void *reg_addr = NULL;
+  //uint64_t *get_window;
+  //uint64_t gcw, get_window_offset;
+  // int i, max_rank/*, j*/;
+  // FILE *hf;
+  // int *pe_array;
+  // gni_post_state_t *state_array;
+  // int connected = 0;
+  // void *my_mem;
+  // int next_event_idx = 0;
+  //gni_mem_segment_t mem_segments[3];
 
   alpsAppGni_t alps_info;
   uint32_t nic_addr = 0;
@@ -301,21 +302,21 @@ main (int argc, char *argv[])
   int fd = 0;
   fd_set rset;
   int max_fds = 0;
-  int fd_cnt = 0;
-  int ret = -1;
-  xemem_segid_t fma_win, fma_put, fma_nc, fma_get, fma_ctrl;
-  xemem_segid_t clean_seg, reg_mem_seg;
+  //int fd_cnt = 0;
+  //int ret = -1;
+  xemem_segid_t fma_win, fma_put, /* fma_nc,*/ fma_get, fma_ctrl;
+  xemem_segid_t /*clean_seg,*/ reg_mem_seg;
   struct xemem_addr r_addr;
   xemem_apid_t apid;
 /* for PMI */
-  int my_rank = malloc (4);
-  int job_size = malloc (4);
+  int my_rank;
+  int job_size;
   int first_spawned;
   void *outbuf;
-  void *mem_mem;
+  //void *mem_mem;
   int *mallocsz;
   void *buffer;
-  void *rdma_post_buf;
+  //void *rdma_post_buf;
   mdh_addr_t *memhdl;
 
   rc = PMI_Init (&first_spawned);
@@ -338,7 +339,7 @@ main (int argc, char *argv[])
       return -1;
     }
 
-  fprintf (stderr, "my rank : %d shadow process server segid: %llu\n",
+  fprintf (stderr, "my rank : %d shadow process server segid: %lu\n",
 	   my_rank, hcq_get_segid (hcq));
 
   fd = hcq_get_fd (hcq);
@@ -418,16 +419,16 @@ main (int argc, char *argv[])
 	       */
 
 	      fma_win =
-		xemem_make (nic_set_attr.fma_window, FMA_WINDOW_SIZE,
+		      xemem_make ((void*)nic_set_attr.fma_window, FMA_WINDOW_SIZE,
 			    "fma_win_seg");
 	      fma_put =
-		xemem_make (nic_set_attr.fma_window_nwc, FMA_WINDOW_SIZE,
+		      xemem_make ((void*)nic_set_attr.fma_window_nwc, FMA_WINDOW_SIZE,
 			    "fma_win_put");
 	      fma_get =
-		xemem_make (nic_set_attr.fma_window_get, FMA_WINDOW_SIZE,
+		      xemem_make ((void*)nic_set_attr.fma_window_get, FMA_WINDOW_SIZE,
 			    "fma_win_get");
 	      fma_ctrl =
-		xemem_make (nic_set_attr.fma_ctrl, GHAL_FMA_CTRL_SIZE,
+		      xemem_make ((void*)nic_set_attr.fma_ctrl, GHAL_FMA_CTRL_SIZE,
 			    "fma_win_ctrl");
 	      //hexdump (nic_set_attr.fma_ctrl, 64);
 	      // Put the segid instead of vaddresses
@@ -436,7 +437,7 @@ main (int argc, char *argv[])
 	      nic_set_attr.fma_window_get = (uint64_t) fma_get;
 	      nic_set_attr.fma_ctrl = (uint64_t) fma_ctrl;
 	      fprintf (stderr,
-		       "dump server segids  win put get ctrl %llu %llu %llu %llu\n",
+		       "dump server segids  win put get ctrl %lu %lu %lu %lu\n",
 		       fma_win, fma_put, fma_get, fma_ctrl);
 	      hcq_cmd_return (hcq, cmd, ret, sizeof (nic_set_attr),
 			      &nic_set_attr);
@@ -444,7 +445,7 @@ main (int argc, char *argv[])
 	    case GNI_IOC_MEM_REGISTER:
 
 	      mem_register_attr = (gni_mem_register_args_t *) data_buf;
-	      gni_mem_segment_t *segment;
+	      //gni_mem_segment_t *segment;
 
 	      if (mem_register_attr->segments_cnt == 1)
 		{
@@ -453,7 +454,7 @@ main (int argc, char *argv[])
 		    {
 		      printf
 			("seg attach from server for MEM REGISTER  failed \n");
-		      return HCQ_INVALID_HANDLE;
+		      return -1;
 		    }
 
 		  r_addr.apid = apid;
@@ -467,13 +468,13 @@ main (int argc, char *argv[])
 		      xemem_release (apid);
 		      return -1;
 		    }
-		  list_add_element (mt, &mem_register_attr->address, buffer,
+		  list_add_element (mt, (void*)&mem_register_attr->address, (uint64_t)buffer,
 				    mem_register_attr->length);
-		  mem_register_attr->address = buffer;
+		  mem_register_attr->address = (uint64_t)buffer;
 		}
 	      else
 		{
-		  segment = mem_register_attr->mem_segments;
+			//segment = mem_register_attr->mem_segments;
 		}
 
 //
@@ -500,7 +501,7 @@ main (int argc, char *argv[])
 	      //              list_print(mt);
 	      //              hexdump(&post_desc, sizeof(gni_post_descriptor_t));
 	      buffer =
-		(void *) list_find_vaddr_by_segid (mt, &post_desc.local_addr);
+		      (void *) list_find_vaddr_by_segid (mt, (void*)&post_desc.local_addr);
 	      post_desc.local_addr = (uint64_t) buffer;
 /*
 	      fprintf (stderr,
@@ -531,7 +532,7 @@ main (int argc, char *argv[])
 	      cq_create_attr = (gni_cq_create_args_t *) data_buf;
 	      buffer =
 		(void *) list_find_vaddr_by_segid (mt,
-						   &cq_create_attr->queue);
+						   (void*)&cq_create_attr->queue);
 	      cq_create_attr->queue = buffer;
 	      rc = ioctl (device, GNI_IOC_CQ_CREATE, cq_create_attr);
 	      if (rc < 0)
@@ -559,7 +560,7 @@ main (int argc, char *argv[])
 	      assert (outbuf);
 	      if (data_len == sizeof (mdh_addr_t))
 		{
-		  memhdl = data_buf;
+		  memhdl = (void*)data_buf;
 /*
 			fprintf(stdout, "server  casting :  %llu    0x%016lx    0x%016lx\n",
                     memhdl->addr,
@@ -567,7 +568,7 @@ main (int argc, char *argv[])
                     memhdl->mdh.qword2);
 */
 		  buffer =
-		    (void *) list_find_vaddr_by_segid (mt, &memhdl->addr);
+			  (void *) list_find_vaddr_by_segid (mt, (void*)&memhdl->addr);
 		  memhdl->addr = (uint64_t) buffer;
 //                fprintf (stdout, "server  found vaddr :  %p\n", buffer);
 		}
@@ -598,7 +599,7 @@ main (int argc, char *argv[])
 	      size_t msz = (*mallocsz);
 	      reg_mem_seg = xemem_make (buffer, msz, NULL);
 	      hcq_cmd_return (hcq, cmd, ret, sizeof (uint64_t), &reg_mem_seg);
-	      list_add_element (mt, &reg_mem_seg, buffer, msz);
+	      list_add_element (mt, (void*)&reg_mem_seg, (uint64_t)buffer, msz);
 	      break;
 
 	    default:

@@ -5,7 +5,8 @@
 #include <string.h>
 #include <errno.h>
 #include <poll.h>
-
+#include "gni_pub.h"
+#include "gni_priv.h"
 #include "pmi.h"
 #include "pmi2.h"
 #include "pmi_cray_ext.h"
@@ -756,7 +757,8 @@ int PMI2_Info_GetJobAttr(const char name[], char value[], int valuelen, int *fou
 	pmi2_info_getjobattr_args_t *out;
 	printf("%s: enterted looking up name %s valuelen %d\n", __func__, name, valuelen);
 	fd = open("/dev/pmi", O_RDWR);
-	out = malloc(sizeof(int) + sizeof(int) + valuelen);
+	out = malloc(32*sizeof(char) + sizeof(int) + sizeof(int) + valuelen);
+	strncpy(out->name, name, 32);
 	out->valuelen = valuelen;
 // TODO(npe) errorpath
 	ioctl(fd, PMI2_IOC_INFO_GETJOBATTR, out);
@@ -892,15 +894,39 @@ int PMI_Get_version_info(int *major,int *minor,int *revision) {
 	printf("%s: entered\n", __func__);
 	return 0;
 }
+extern void allgather (void *in, void *out, int len);
 
 int PMI_Allgather(void *in, void *out, int len) {
-	printf("%s: entered\n", __func__);
+	printf("%s: entered in %p len %d\n", __func__, in, len);
+	allgather(in, out, len);
+	printf("%s: finished\n", __func__);
 	return 0;
 }
 
+extern int allgatherv(void *in, int len, void *out, int *all_lens);
 
 int PMI_Allgatherv(void *in, int len, void *out, int *all_lens) {
-	printf("%s: entered\n", __func__);
+	int i = 0;
+	printf("%s: entered in %p len %d ", __func__, in, len);
+	allgatherv(in, len, out, all_lens);
+	return PMI_SUCCESS;
+}
+
+gni_return_t
+__wrap_GNI_GetJobResInfo(
+	uint32_t            device_id,
+	uint8_t             ptag,
+	gni_job_res_t       res_type,
+	gni_job_res_desc_t  *res_desc
+	) {
+	gni_getjobresinfo_args_t *out;
+	printf("%s: running wrapper\n", __func__);
+	fd = open("/dev/pmi", O_RDWR);
+	out = malloc(sizeof(gni_getjobresinfo_args_t));
+	out->device_id = device_id;
+	out->ptag = ptag;
+	ioctl(fd, GNI_IOC_GETJOBRESINFO, out);
+	res_desc = out->res_desc;
 	return 0;
 }
 

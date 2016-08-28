@@ -664,8 +664,9 @@ typedef struct gni_comp_chan_cqarm_args {
 #define GNI_IOC_COMP_CHAN_CREATE        _IOWR(GNI_IOC_MAGIC, 40, gni_comp_chan_create_args_t)
 #define GNI_IOC_COMP_CHAN_ATTACH        _IOWR(GNI_IOC_MAGIC, 41, gni_comp_chan_attach_args_t)
 #define GNI_IOC_COMP_CHAN_CQARM         _IOWR(GNI_IOC_MAGIC, 42, gni_comp_chan_cqarm_args_t)
+#define  GNI_IOC_GETJOBRESINFO       _IOWR(GNI_IOC_MAGIC, 43, gni_comp_chan_cqarm_args_t)
 
-#define GNI_IOC_MAXNR  42
+#define GNI_IOC_MAXNR  43
 
 #ifdef __KERNEL__
 

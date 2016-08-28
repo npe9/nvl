@@ -1,0 +1,7 @@
+# test basic app launching and reaping.
+#!/bin/sh
+
+./start_hobbes.sh
+sleep 10
+# want to know which enclave I created a posteriori
+./hobbes launch_composed ./composition.xml

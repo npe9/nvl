@@ -1,0 +1,16 @@
+<pisces>
+    <kernel>/tmp/hobbes/vmlwk.bin</kernel>
+    <init_task>/tmp/hobbes/lwk_init</init_task>
+    <cmd_line>console=pisces</cmd_line>
+
+    <cpus>
+        <cores>8</cores>
+    </cpus>
+
+    <memory size="512" numa="-1" />
+
+    <devices>
+      <vpci name="nic_1" bus="0" dev="1" fn="0" />
+    </devices>
+
+</pisces>

@@ -170,7 +170,7 @@ if ($#ARGV == -1) {
 GetOptions(
 	"help"			=> \&usage,
 	"clean" => sub { $program_args{'clean'} = 1; },
-	"force-configure" => sub { $program_args{'force-configure'} = 1; },
+	"force-configure" => sub { $program_args{'force_configure'} = 1; },
 	"build-kernel"		=> sub { $program_args{'build_kernel'} = 1; },
 	"build-busybox"		=> sub { $program_args{'build_busybox'} = 1; },
 	"build-dropbear"	=> sub { $program_args{'build_dropbear'} = 1; },
@@ -351,10 +351,11 @@ if ($program_args{build_ompi}) {
 		system("./autogen.pl") == 0 || die "couldn't generate configure for openmpi";
 	}
 	if(! -e "./config.status" || $program_args{force_configure}){
-	  system ("./configure --prefix=$BASEDIR/opt/simple_busybox/$ompi{basename} --enable-static --disable-shared --disable-dlopen --disable-oshmem --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind --without-memory-manager --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,topo-treematch,pmix-pmix112,pmix-s2,pmix-isolated,pmix-pmix120,coll-tuned,pmix-pisces,pmix-whitedb,rte-orte,pmix-s1,reachable-netlink --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=pmix-cray,btl-ugni,btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-alps=no") == 0
+	  system ("./configure --prefix=$BASEDIR/opt/simple_busybox/$ompi{basename} --enable-static --disable-shared --disable-dlopen --disable-oshmem --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind  --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,pmix-pmix112,pmix-isolated,pmix-pmix120,coll-tuned,,pmix-whitedb,rte-orte,reachable-netlink,ess-pmi,pmix-xpmem,pmix-s2,pmix-pisces,pmix-s1 --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-alps=yes") == 0
 		or die "failed to configure";
 	}
-	system ("make -j 4 LDFLAGS=\"$ENV{LDFLAGS} -all-static\" >/dev/null") == 0 or die "failed to make";
+	system ("make -j 4 LIBS=\" $ENV{LIBS} -lalpsutil -lalpslli -lwlm_detect -lugni -lrt -lutil  \" LDFLAGS=\"$ENV{LDFLAGS} -L$BASEDIR/$SRCDIR/numactl/.libs -L/opt/cray/alps/5.2.1-2.0502.9041.11.6.gem/lib64/ -L/opt/cray/ugni/5.0-1.0502.9685.4.24.gem/lib64/ -L/opt/cray/wlm_detect/1.0-1.0502.53341.1.1.gem/lib64/ -L$BASEDIR/cray/static-link -L$BASEDIR/$SRCDIR/pisces/hobbes/libhobbes  -all-static\" >/dev/null") == 0 or die "failed to make";
+	#system ("make \"V=1\" -j 4 LDFLAGS=\"$ENV{LDFLAGS} -L$BASEDIR/$SRCDIR/numactl/.libs -L/opt/cray/alps/5.2.1-2.0502.9041.11.6.gem/lib64/ -L/opt/cray/ugni/5.0-1.0502.9685.4.24.gem/lib64/ -L/opt/cray/wlm_detect/1.0-1.0502.53341.1.1.gem/lib64/ -all-static\" >/dev/null") == 0 or die "failed to make";
 	system ("make install ") == 0 or die "failed to install";
 	chdir "$BASEDIR" or die;
 }
@@ -482,38 +483,23 @@ if ($program_args{build_pisces}) {
 	chdir "$BASEDIR" or die;
 	print "CNL: STEP 11: Done building pisces/hobbes/lwk_inittask\n";
 
+	# Step 13: Build cray forwarding layer 
+	print "CNL: STEP 13: Building cray forwarding\n";
+	chdir "$BASEDIR/cray/static-link" or die;
+	system("make") == 0 or die "couldn't make forwarding layer";
+	chdir "$BASEDIR" or die;
+	print "CNL: STEP 11: Done building cray forwarding\n";
+
+
 	# Step 12: Build Hobbes PMI Hello Example App
-	print "CNL: STEP 12: Building pisces/hobbes/examples/apps/pmi/test_pmi_hello\n";
-	chdir "$SRCDIR/$pisces{src_subdir}/hobbes/examples/apps/pmi" or die;
-	system ("make clean") == 0 or die "failed to clean";
-	system ("make") == 0 or die "failed to make";
-	chdir "$BASEDIR" or die;
-	print "CNL: STEP 12: Done building pisces/hobbes/examples/apps/pmi/test_pmi_hello\n";
+	#print "CNL: STEP 12: Building pisces/hobbes/examples/apps/pmi/test_pmi_hello\n";
+	#chdir "$SRCDIR/$pisces{src_subdir}/hobbes/examples/apps/pmi" or die;
+	#system ("make clean") == 0 or die "failed to clean";
+	#system ("make") == 0 or die "failed to make";
+	#chdir "$BASEDIR" or die;
+	#print "CNL: STEP 12: Done building pisces/hobbes/examples/apps/pmi/test_pmi_hello\n";
 
 }
-
-# Build OpenMPI
-if ($program_args{build_ompi}) {
-	print "CNL: Building OpenMPI $ompi{basename}\n";
-	chdir "$SRCDIR/$ompi{basename}" or die;
-	# This is a horrible hack. We're installing OpenMPI into /opt on the host.
-	# This means we need to be root to do a make install and will possibly screw up the host.
-	# We should really be using chroot or something better.
-	#system ("LD_LIBRARY_PATH=$BASEDIR/$SRCDIR/slurm-install/lib ./configure --prefix=/opt/$ompi{basename} --disable-shared --enable-static --with-verbs=yes") == 0
-	system("cp opal/mca/pmix/pmix120/pmix/include/pmi.h $BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/include") == 0 or die "couldn't copy pmi.h";
-	system("cp $BASEDIR/$SRCDIR/pisces/xpmem/include/xpmem.h ompi/mca/rte/pisces") == 0 or die "couldn't copy xpmem.h";
-	if(! -e "configure" ){
-		system("./autogen.pl") == 0 || die "couldn't generate configure for openmpi";
-	}
-	if(! -e "./config.status" || $program_args{force_configure}){
-	  system ("./configure --prefix=$BASEDIR/opt/simple_busybox/$ompi{basename} --enable-static --disable-shared --disable-dlopen --disable-java --disable-hwloc-pci --disable-mpi-io --disable-libompitrace --without-verbs --without-cuda --without-libfabric --without-portals4 --without-scif --without-usnic --without-knem --without-cma --without-x --without-lustre --without-mxm --without-psm --without-psm2 --without-ucx --without-blcr --without-dmtcp --without-valgrind --without-memory-manager --enable-mca-no-build=maffinity,paffinity,btl-openib,btl-portals,btl-portals4,btl-scif,btl-sm,btl-tcp,btl-usnic,btl-libfabric,topo-treematch,pmix-pmix112,pmix-cray,pmix-s2,pmix-isolated,pmix-pmix120,coll-tuned,pmix-pisces,pmix-xpmem,pmix-whitedb,rte-orte --disable-getpwuid --with-orte=no --enable-debug  --enable-mca-static=pmix-s1,btl-vader --with-xpmem=$BASEDIR/$SRCDIR/pisces/xpmem --with-pmi=$BASEDIR/$SRCDIR/pisces/hobbes/libhobbes/ --with-alps=no") == 0
-		or die "failed to configure";
-	}
-	system ("make -j 4 LDFLAGS=\"$ENV{LDFLAGS} -all-static -L/home/ktpedre/openmpi/install/lib/ \" >/dev/null") == 0 or die "failed to make";
-	system ("make install ") == 0 or die "failed to install";
-	chdir "$BASEDIR" or die;
-}
-
 
 # Build Curl
 if ($program_args{build_curl}) {
@@ -611,6 +597,7 @@ if ($program_args{build_mpi_tutorial}) {
 	chdir "$MPIT_BASEDIR" or die "couldn't find MPI tutorial directory";
 	print $MPIT_BASEDIR."\n";
 	# Build MPI Tutorial or die
+	system ("make clean") == 0 or die "failed to make";
 	system ("make") == 0 or die "failed to make";
 
 	chdir "$BASEDIR" or die;
@@ -629,8 +616,9 @@ if ($program_args{build_hpcg}) {
 	print $HPCG_BASEDIR."\n";
 	# Build HPCG or die
 	system ("make clean");
-	system ("make arch=Kitten_MPI_Static") == 0 or die "failed to make";
-
+	# jury rig a fix 
+	system ("make arch=Kitten_MPI_Static"); #== 0 or die "failed to make";
+  system ("g++ -DHPCG_NO_OPENMP -Wl,-wrap,open -Wl,-wrap=ioctl -I./src -I./src/Kitten_MPI_Static -O3 -ffast-math -ftree-vectorize -ftree-vectorizer-verbose=0 -g -static -L/opt/cray/udreg/2.3.2-1.0502.9275.1.25.gem/lib64/ -L../../cray/static-link -L../numactl/.libs -L../ompi/ompi/.libs -L../ompi/opal/.libs -L../pisces/xpmem/lib -L../pisces/hobbes/libhobbes -L/opt/cray/ugni/5.0-1.0502.9685.4.24.gem/lib64/ -L/opt/cray/alps/5.2.1-2.0502.9041.11.6.gem/lib64/ -L/opt/cray/pmi/5.0.7-1.0000.10678.155.29.gem/lib64/ -L/opt/cray/wlm_detect/1.0-1.0502.53341.1.1.gem/lib64 src/main.o src/CG.o src/CG_ref.o src/TestCG.o src/ComputeResidual.o src/ExchangeHalo.o src/GenerateGeometry.o src/GenerateProblem.o src/GenerateProblem_ref.o src/CheckProblem.o src/OptimizeProblem.o src/ReadHpcgDat.o src/ReportResults.o src/SetupHalo.o src/SetupHalo_ref.o src/TestSymmetry.o src/TestNorms.o src/WriteProblem.o src/YAML_Doc.o src/YAML_Element.o src/ComputeDotProduct.o src/ComputeDotProduct_ref.o src/finalize.o src/init.o src/mytimer.o src/ComputeSPMV.o src/ComputeSPMV_ref.o src/ComputeSYMGS.o src/ComputeSYMGS_ref.o src/ComputeWAXPBY.o src/ComputeWAXPBY_ref.o src/ComputeMG_ref.o src/ComputeMG.o src/ComputeProlongation_ref.o src/ComputeRestriction_ref.o src/GenerateCoarseProblem.o src/ComputeOptimalShapeXYZ.o src/MixedBaseCounter.o src/CheckAspectRatio.o src/OutputFile.o -o bin/xhpcg -lhobbes -ludreg -pthread -L/opt/cray/xpmem/0.1-2.0502.55507.3.2.gem/lib64 -lxpmem -L/opt/cray/udreg/2.3.2-1.0502.9275.1.25.gem/lib64 -ludreg -Wl,-rpath -Wl,/opt/cray/xpmem/0.1-2.0502.55507.3.2.gem/lib64 -Wl,-rpath -Wl,/opt/cray/udreg/2.3.2-1.0502.9275.1.25.gem/lib64 -Wl,-rpath -Wl,/ufs/home/npe/nvl.me/src/nvl/pisces/opt/simple_busybox/ompi/lib -Wl,--enable-new-dtags -L/ufs/home/npe/nvl.me/src/nvl/pisces/opt/simple_busybox/ompi/lib -lmpi -lopen-pal -lm -lnuma -L/opt/cray/ugni/5.0-1.0502.9685.4.24.gem/lib64 -lugni -L/opt/cray/xpmem/0.1-2.0502.55507.3.2.gem/lib64 -lxpmem -lmunge -lutil -lrt -lmpi -lopen-pal -lrt -lxpmem -lhobbes -lalps -lalpsutil -lxpmem_chnl_client -lhobbes -lxpmem -lalpslli -lugni -lwlm_detect  -ludreg") == 0 or die "couldn't manually compile hpcg";
 	chdir "$BASEDIR" or die;
 }
 
@@ -689,8 +677,8 @@ if ($program_args{build_image}) {
 		or die "error 9";
 	system("cp -R $SRCDIR/pisces/pisces/linux_usr/v3_cons_nosc $IMAGEDIR/opt/hobbes") == 0
 		or die "error 10";
-	system("cp -R $SRCDIR/pisces/hobbes/examples/apps/pmi/test_pmi_hello $IMAGEDIR/opt/hobbes") == 0
-		or die "error 11";
+	#system("cp -R $SRCDIR/pisces/hobbes/examples/apps/pmi/test_pmi_hello $IMAGEDIR/opt/hobbes") == 0
+	#	or die "error 11";
 	system("cp -R $SRCDIR/test/null/null $IMAGEDIR/opt/hobbes") == 0
 		or die "error 12";
 	system("cp -R $SRCDIR/mpitutorial/tutorials/mpi-hello-world/code/mpi_hello_world $IMAGEDIR/opt/hobbes") == 0

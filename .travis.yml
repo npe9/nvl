@@ -23,8 +23,6 @@ addons:
 notifications:
     email:
         recipients:
-            - noah.evans@gmail.com
-            - ktpedre@sandia.gov
 git:
     submodules: false
 

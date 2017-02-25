@@ -1,7 +1,7 @@
 language: c
 sudo: required
 dist: trusty
-script: cd src/guests/simple_busybox/ && sudo ./build.pl --build-ompi --build-kernel --build-busybox --build-dropbear --build-libhugetlbfs --build-numactl --build-hwloc --build-pisces --build-image --build-isoimage && ../../../ci/run_tests.sh
+script: cd src/guests/simple_busybox/ &&  ./build.pl --build-hpl --build-kernel --build-busybox --build-dropbear --build-libhugetlbfs --build-numactl --build-hwloc --build-pisces --build-ompi --build-mpi-tutorial --build-hpcg --build-image --build-isoimage && ../../../ci/run_tests.sh
 compiler:
 - gcc-4.8
 before_install: ci/before_install.sh
@@ -12,6 +12,9 @@ addons:
     packages:
     - gcc-4.8
     - mtools
+    - gfortran
+    - libblas-dev
+    - liblapack-dev
     - genisoimage
     - syslinux
     - qemu
@@ -20,8 +23,6 @@ addons:
 notifications:
     email:
         recipients:
-            - noah.evans@gmail.com
-            - ktpedre@sandia.gov
 git:
     submodules: false
 

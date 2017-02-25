@@ -1,0 +1,9 @@
+# test basic app launching and reaping.
+#!/bin/sh
+
+cd /opt/hobbes
+./start_hobbes.sh
+sleep 10
+./hobbes create_enclave ./kitten_enclave.xml || exit 1 
+# want to know which enclave I created a posteriori
+./hobbes launch_app -np 3 enclave-1 /opt/hobbes/mpi_hello_world

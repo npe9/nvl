@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <poll.h>
+//#include <sys/fcntl.h>
 
 #include "gni_pub.h"
 #include "gni_priv.h"
@@ -52,26 +53,81 @@ xemem_segid_t cmdq_segid;
 hcq_handle_t hcq = HCQ_INVALID_HANDLE;
 struct memseg_list *mt = NULL;
 
+int handle_ioctl (int device, unsigned long int request, void *arg);
 
 void
 allgather (void *in, void *out, int len)
 {
-  uint32_t retlen;
-  void *out_ptr;
-  hcq_cmd_t cmd = HCQ_INVALID_CMD;
-  //fprintf(stdout, "client library allgather in pointer  %p, \n", in);
-  cmd = hcq_cmd_issue (hcq, PMI_IOC_ALLGATHER, len, in);
-  out_ptr = hcq_get_ret_data (hcq, cmd, &retlen);
-  memcpy (out, out_ptr, (comm_size * len));
-  hcq_cmd_complete (hcq, cmd);
+	uint32_t retlen;
+	void *out_ptr;
+	typedef struct {
+		uint32_t pmix_rank;
+		int32_t jobfam;
+		int32_t vpid;
+		int32_t nbytes;
+	} bytes_and_rank_t;
+
+	int i;
+	bytes_and_rank_t *p;
+
+	hcq_cmd_t cmd = HCQ_INVALID_CMD;
+	//fprintf(stdout, "client library allgather in pointer  %p, \n", in);
+	comm_size = 2;
+	cmd = hcq_cmd_issue (hcq, PMI_IOC_ALLGATHER, len, in);
+	out_ptr = hcq_get_ret_data (hcq, cmd, &retlen);
+	printf("%s: comm_size %d len %d comm_size * len %d out_ptr %p\n", __func__, comm_size, len, comm_size*len, out_ptr);
+	p = out_ptr;
+	for (i = 0; i < 2; i++)
+	{
+		printf("%s: pmix_rank %d vpid %d jobfam %d nbytes %d\n", __func__, p[i].pmix_rank, p[i].vpid, p[i].jobfam, p[i].nbytes);
+//      memcpy (&out_ptr[len * ivec_ptr[i]], &tmp_buf[i * len], len);
+	}
+
+	memcpy (out, out_ptr, (comm_size * len));
+	hcq_cmd_complete (hcq, cmd);
 }
+
+int
+allgatherv (void *in, int len, void *out, int *all_lens)
+{
+	uint32_t retlen;
+	void *out_ptr;
+	typedef struct {
+		uint32_t pmix_rank;
+		int32_t jobfam;
+		int32_t vpid;
+		int32_t nbytes;
+	} bytes_and_rank_t;
+
+	int i;
+	bytes_and_rank_t *p;
+
+	hcq_cmd_t cmd = HCQ_INVALID_CMD;
+	//fprintf(stdout, "client library allgather in pointer  %p, \n", in);
+	comm_size = 2;
+	cmd = hcq_cmd_issue (hcq, PMI_IOC_ALLGATHERV, len, in);
+	out_ptr = hcq_get_ret_data (hcq, cmd, &retlen);
+	printf("%s: comm_size %d len %d comm_size * len %d out_ptr %p\n", __func__, comm_size, len, comm_size*len, out_ptr);
+	all_lens = out_ptr;
+	p = out_ptr + 2*sizeof(int);
+	for (i = 0; i < 2; i++)
+	{
+		printf("%s: pmix_rank %d vpid %d jobfam %d nbytes %d\n", __func__, p[i].pmix_rank, p[i].vpid, p[i].jobfam, p[i].nbytes);
+//      memcpy (&out_ptr[len * ivec_ptr[i]], &tmp_buf[i * len], len);
+	}
+
+	memcpy (out, out_ptr, (comm_size * len));
+	hcq_cmd_complete (hcq, cmd);
+	return 0;
+}
+
 
 /* Define bare minimum PMI calls to forward to other side */
 
 int
 pmi_finalize (void)
 {
-  int retlen;
+  //int retlen;
   hcq_cmd_t cmd = HCQ_INVALID_CMD;
   cmd = hcq_cmd_issue (hcq, PMI_IOC_FINALIZE, 0, NULL);
   hcq_cmd_complete (hcq, cmd);
@@ -81,7 +137,8 @@ pmi_finalize (void)
 int
 pmi_barrier (void)
 {
-  int retlen;
+  //int retlen;
+	printf("%s: entered\n", __func__);
   hcq_cmd_t cmd = HCQ_INVALID_CMD;
   cmd = hcq_cmd_issue (hcq, PMI_IOC_BARRIER, 0, NULL);
   hcq_cmd_complete (hcq, cmd);
@@ -112,12 +169,17 @@ pmi_barrier (void)
 
 int __real_open (const char *pathname, int flags);
 
-void
+extern char **environ;
+
+int
 kgni_init (const char *pathname, int flags)
 {
   static int already_init = 0;
-
+  char *buf;
+  int *ptag, *cookie, *devid;
+  char *local_addr;
   hcq_cmd_t cmd = HCQ_INVALID_CMD;
+  uint32_t len;
   if (!already_init)
     {
       mt = list_new ();
@@ -130,8 +192,50 @@ kgni_init (const char *pathname, int flags)
 	  printf ("connect failed\n");
 	  return -1;
 	}
+      cmd = hcq_cmd_issue (hcq, OOB_IOC_PTAG, 0, NULL);
+      ptag = (int*)hcq_get_ret_data (hcq, cmd, &len);
+      hcq_cmd_complete (hcq, cmd);
+      asprintf(&buf, "PMI_GNI_PTAG=%d", *ptag);
+      printf("%s: putting %s in environment\n", __func__, buf);
+      putenv(buf);
+      printf("%s: got %s from environment\n", __func__, getenv("PMI_GNI_PTAG"));
+      {
+	      char **s;
+	      s = environ;
+	      while(*s)
+		      printf("%s: %s\n", __func__, *s++);
+      }
+      cmd = hcq_cmd_issue (hcq, OOB_IOC_COOKIE, 0, NULL);
+      cookie = (int*)hcq_get_ret_data (hcq, cmd, &len);
+      hcq_cmd_complete (hcq, cmd);
+      asprintf(&buf, "PMI_GNI_COOKIE=%d", *cookie);
+      printf("%s: putting %s in environment\n", __func__, buf);
+      putenv(buf);
+      printf("%s: got %s from environment\n", __func__, getenv("PMI_GNI_COOKIE"));
+      cmd = hcq_cmd_issue (hcq, OOB_IOC_DEV_ID, 0, NULL);
+      devid = (int*)hcq_get_ret_data (hcq, cmd, &len);
+      hcq_cmd_complete (hcq, cmd);
+      asprintf(&buf, "PMI_GNI_DEV_ID=%d", *devid);
+      printf("%s: putting %s in environment\n", __func__, buf);
+      putenv(buf);
+      printf("%s: got %s from environment\n", __func__, getenv("PMI_GNI_DEV_ID"));
+      cmd = hcq_cmd_issue (hcq, OOB_IOC_LOC_ADDR, 0, NULL);
+      local_addr = (char*)hcq_get_ret_data (hcq, cmd, &len);
+      hcq_cmd_complete (hcq, cmd);
+      asprintf(&buf, "PMI_GNI_LOC_ADDR=%s", local_addr);
+      printf("%s: putting %s in environment\n", __func__, buf);
+      putenv(buf);
+      printf("%s: got %s from environment\n", __func__, getenv("PMI_GNI_LOC_ADDR"));
+
+      {
+      char **s;
+      s = environ;
+      while(*s)
+	      printf("%s: %s\n", __func__, *s++);
+      }
       already_init = 1;
     }
+  return 0;
 }
 
 /* We need to start cmd queue for PMI calls or kgni ioctls */
@@ -144,14 +248,16 @@ __wrap_open (const char *pathname, int flags, ...)
     {
       //client_fd = __real_open ("/home/smukher/temp", flags);
       client_fd = 120;
-      kgni_init (pathname, flags);
+      if(kgni_init (pathname, flags) < 0)
+        return -1;
       return client_fd;
     }
   else if (strncmp (pathname, "/dev/pmi", 8) == 0)
     {
       //pmi_fd = __real_open ("/home/smukher/temp1", flags);
       pmi_fd = 121;
-      kgni_init (pathname, flags);
+      if(kgni_init (pathname, flags) < 0)
+        return -1;
       return pmi_fd;
     }
   else
@@ -165,10 +271,9 @@ int __real_ioctl (int fd, int request, void *data);
 int
 __wrap_ioctl (int fd, unsigned long int request, ...)
 {
-  char *msg;
+  //char *msg;
   va_list args;
   void *argp;
-
   /* extract argp from varargs */
   va_start (args, request);
   argp = va_arg (args, void *);
@@ -200,19 +305,19 @@ pack_args (unsigned long int request, void *args)
 {
   gni_nic_setattr_args_t *nic_set_attr1;
   gni_mem_register_args_t *mem_reg_attr;
-  gni_mem_register_args_t *mem_reg_attr1;
+  //gni_mem_register_args_t *mem_reg_attr1;
   gni_cq_destroy_args_t *cq_destroy_args;
   gni_cq_create_args_t *cq_create_args;
   gni_cq_wait_event_args_t *cq_wait_event_args;
   gni_post_rdma_args_t *post_rdma_args;
   gni_nic_fmaconfig_args_t *fmaconfig_args;
-  void *reg_buf;
+  //void *reg_buf;
   void *rdma_post_tmpbuf;
   void *cq_tmpbuf;
   hcq_cmd_t cmd = HCQ_INVALID_CMD;
-  gni_mem_segment_t *segment;	/*comes from gni_pub.h */
-  int i;
-  uint32_t seg_cnt;
+  //gni_mem_segment_t *segment;	/*comes from gni_pub.h */
+  //int i;
+  //uint32_t seg_cnt;
   xemem_segid_t cq_index_seg;
   xemem_segid_t reg_mem_seg;
   xemem_segid_t my_mem_seg;
@@ -220,16 +325,20 @@ pack_args (unsigned long int request, void *args)
   xemem_segid_t rdma_post_seg;
   uint32_t len = 0;
   uint64_t save_local_addr;
-  int *rc;
+  //int *rc;
 
   /* PMI ioctls args */
+/* XXX(npe) put the args in a discriminated union */
   pmi_allgather_args_t *gather_arg;
   pmi_getsize_args_t *size_arg;
   pmi_getrank_args_t *rank_arg;
+  pmi2_init_args_t *init_arg;
+  pmi2_job_getid_args_t *job_getid_arg;
+  pmi2_info_getjobattr_args_t *info_getjobattr_arg;
   int *size = malloc (sizeof (int));
   int *rank = malloc (sizeof (int));
   mdh_addr_t *clnt_gather_hdl;
-
+  
   switch (request)
     {
     case GNI_IOC_NIC_SETATTR:
@@ -238,13 +347,12 @@ pack_args (unsigned long int request, void *args)
       cmd =
 	hcq_cmd_issue (hcq, GNI_IOC_NIC_SETATTR,
 		       sizeof (gni_nic_setattr_args_t), nic_set_attr1);
-
-      fprintf (stdout, "cmd = %0x data size %d\n", cmd,
+      fprintf (stdout, "cmd = %0lx data size %lu\n", cmd,
 	       sizeof (nic_set_attr1));
       nic_set_attr1 = hcq_get_ret_data (hcq, cmd, &len);
       hcq_cmd_complete (hcq, cmd);
       memcpy (args, (void *) nic_set_attr1, sizeof (nic_set_attr1));
-      printf ("after NIC attach  dump segids %llu  %llu %llu %llu\n",
+      printf ("after NIC attach  dump segids %lu  %lu %lu %lu\n",
 	      nic_set_attr1->fma_window, nic_set_attr1->fma_window_nwc,
 	      nic_set_attr1->fma_window_get, nic_set_attr1->fma_ctrl);
       struct xemem_addr win_addr;
@@ -257,14 +365,14 @@ pack_args (unsigned long int request, void *args)
       void *fma_put = NULL;
       void *fma_get = NULL;
       void *fma_ctrl = NULL;
-      void *fma_nc = NULL;
+      //void *fma_nc = NULL;
 
       xemem_apid_t apid;
 
-      xemem_segid_t fma_win_seg;
-      xemem_segid_t fma_put_seg;
-      xemem_segid_t fma_get_seg;
-      xemem_segid_t fma_ctrl_seg;
+      //xemem_segid_t fma_win_seg;
+      //xemem_segid_t fma_put_seg;
+      //xemem_segid_t fma_get_seg;
+      //xemem_segid_t fma_ctrl_seg;
       hcq_cmd_t cmd = HCQ_INVALID_CMD;
 
 
@@ -272,7 +380,7 @@ pack_args (unsigned long int request, void *args)
       if (apid <= 0)
 	{
 	  xemem_remove (nic_set_attr1->fma_window);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
       win_addr.apid = apid;
@@ -284,7 +392,7 @@ pack_args (unsigned long int request, void *args)
 	{
 	  xemem_release (apid);
 	  xemem_remove (nic_set_attr1->fma_window);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
       apid = xemem_get (nic_set_attr1->fma_window_nwc, XEMEM_RDWR);
@@ -310,7 +418,7 @@ pack_args (unsigned long int request, void *args)
       if (apid <= 0)
 	{
 	  xemem_remove (nic_set_attr1->fma_window_get);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
       get_addr.apid = apid;
@@ -322,13 +430,13 @@ pack_args (unsigned long int request, void *args)
 	{
 	  xemem_release (apid);
 	  xemem_remove (nic_set_attr1->fma_window_get);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
       apid = xemem_get (nic_set_attr1->fma_ctrl, XEMEM_RDWR);
       if (apid <= 0)
 	{
 	  xemem_remove (nic_set_attr1->fma_ctrl);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
       ctrl_addr.apid = apid;
@@ -340,13 +448,13 @@ pack_args (unsigned long int request, void *args)
 	{
 	  xemem_release (apid);
 	  xemem_remove (nic_set_attr1->fma_ctrl);
-	  return HCQ_INVALID_HANDLE;
+	  return -1;
 	}
 
-      nic_set_attr1->fma_window = fma_win;
-      nic_set_attr1->fma_window_nwc = fma_put;
-      nic_set_attr1->fma_window_get = fma_get;
-      nic_set_attr1->fma_ctrl = fma_ctrl;
+      nic_set_attr1->fma_window = (uint64_t)fma_win;
+      nic_set_attr1->fma_window_nwc = (uint64_t)fma_put;
+      nic_set_attr1->fma_window_get = (uint64_t)fma_get;
+      nic_set_attr1->fma_ctrl = (uint64_t)fma_ctrl;
       memcpy (args, (void *) nic_set_attr1, sizeof (gni_nic_setattr_args_t));
       break;
     case GNI_IOC_CQ_CREATE:
@@ -367,7 +475,7 @@ pack_args (unsigned long int request, void *args)
          cq_create_args->mem_hndl.qword1, cq_create_args->mem_hndl.qword2);
        */
       cq_tmpbuf = cq_create_args->queue;	/* preserve cq space */
-      cq_seg = list_find_segid_by_vaddr (mt, cq_create_args->queue);
+      cq_seg = list_find_segid_by_vaddr (mt, (uint64_t)cq_create_args->queue);
       cq_create_args->queue = (gni_cq_entry_t *) cq_seg;
       cmd =
 	hcq_cmd_issue (hcq, GNI_IOC_CQ_CREATE, sizeof (gni_cq_create_args_t),
@@ -387,7 +495,7 @@ pack_args (unsigned long int request, void *args)
       memcpy (mem_reg_attr, args, sizeof (gni_mem_register_args_t));
 
       reg_mem_seg =
-	xemem_make (mem_reg_attr->address, mem_reg_attr->length, NULL);
+	xemem_make ((void*)mem_reg_attr->address, mem_reg_attr->length, NULL);
       list_add_element (mt, &reg_mem_seg, mem_reg_attr->address,
 			mem_reg_attr->length);
       //list_print(mt);
@@ -416,8 +524,8 @@ pack_args (unsigned long int request, void *args)
        */
       cq_wait_event_args = (gni_cq_wait_event_args_t *) args;
       cq_index_seg =
-	list_find_segid_by_vaddr (mt, cq_wait_event_args->next_event_ptr);
-      cq_wait_event_args->next_event_ptr = cq_index_seg;
+	list_find_segid_by_vaddr (mt, (uint64_t)cq_wait_event_args->next_event_ptr);
+      cq_wait_event_args->next_event_ptr = (void*)cq_index_seg;
       cmd =
 	hcq_cmd_issue (hcq, GNI_IOC_CQ_WAIT_EVENT,
 		       sizeof (gni_cq_wait_event_args_t), cq_wait_event_args);
@@ -475,7 +583,35 @@ pack_args (unsigned long int request, void *args)
     case PMI_IOC_BARRIER:
       pmi_barrier ();
       break;
-
+    case PMI2_IOC_INIT:
+	    printf("%s: sending pmi2_init\n", __func__);
+	    init_arg = (pmi2_init_args_t*)args;
+	    cmd = hcq_cmd_issue (hcq, PMI2_IOC_INIT, sizeof (pmi2_init_args_t), init_arg);
+	    init_arg = hcq_get_ret_data (hcq, cmd, &len);
+	    hcq_cmd_complete (hcq, cmd);
+	    memcpy (args, (void *) init_arg, sizeof (pmi2_init_args_t));
+	    printf("%s: spawned %d rank %d size %d appnum %d\n", __func__, init_arg->spawned, init_arg->rank, init_arg->size, init_arg->appnum);
+	    //comm_size = *size;
+	    //size_arg->comm_size = *size;	/* Store it in a global */
+	    break;
+    case PMI2_IOC_JOB_GETID:
+	    job_getid_arg = (pmi2_job_getid_args_t*)args;
+	    printf("%s: sending pmi2_job_getid jobid %p jobid_size %d\n", __func__, job_getid_arg->jobid, job_getid_arg->jobid_size);
+	    cmd = hcq_cmd_issue (hcq, PMI2_IOC_JOB_GETID, job_getid_arg->jobid_size + sizeof(int), job_getid_arg);
+	    job_getid_arg = hcq_get_ret_data (hcq, cmd, &len);
+	    hcq_cmd_complete (hcq, cmd);
+	    memcpy (args, (void *) job_getid_arg, job_getid_arg->jobid_size + sizeof (int));
+	    printf("%s: jobid %s jobid_size %d\n", __func__, job_getid_arg->jobid, job_getid_arg->jobid_size);
+	    break;
+    case PMI2_IOC_INFO_GETJOBATTR:
+	    info_getjobattr_arg = (pmi2_info_getjobattr_args_t*)args;
+	    printf("%s: sending pmi2_info_getjobattr value %p valuelen %d\n", __func__, info_getjobattr_arg->value, info_getjobattr_arg->valuelen);
+	    cmd = hcq_cmd_issue (hcq, PMI2_IOC_INFO_GETJOBATTR, 32*sizeof(char) + sizeof(int) + sizeof(int) + info_getjobattr_arg->valuelen, info_getjobattr_arg);
+	    info_getjobattr_arg = hcq_get_ret_data (hcq, cmd, &len);
+	    hcq_cmd_complete (hcq, cmd);
+	    memcpy (args, (void *) info_getjobattr_arg, 32*sizeof(char) + sizeof(int) + sizeof(int) + info_getjobattr_arg->valuelen);
+	    printf("%s: value %s valuelen %u found %d\n", __func__, info_getjobattr_arg->value, info_getjobattr_arg->valuelen, info_getjobattr_arg->found);
+	    break;
     case GNI_IOC_NIC_FMA_CONFIG:
       fmaconfig_args = (gni_nic_fmaconfig_args_t *) args;
       cmd =
@@ -504,6 +640,8 @@ pack_args (unsigned long int request, void *args)
       break;
     case GNI_IOC_POST_RDMA:
       post_rdma_args = args;
+    case GNI_IOC_GETJOBRESINFO:
+	    break;
 /*
       fprintf (stdout,
 	       "client side POST RDMA  local addr 0x%lx    word1 0x%016lx   word2  0x%016lx\n",
@@ -529,7 +667,7 @@ pack_args (unsigned long int request, void *args)
 		       sizeof (gni_post_rdma_args_t) +
 		       sizeof (gni_post_descriptor_t), rdma_post_tmpbuf);
 
-      rc = hcq_get_ret_data (hcq, cmd, &len);
+      //rc = hcq_get_ret_data (hcq, cmd, &len);
       hcq_cmd_complete (hcq, cmd);
       post_rdma_args->post_desc->local_addr = (uint64_t) save_local_addr;
       free (rdma_post_tmpbuf);
@@ -600,13 +738,14 @@ pack_args (unsigned long int request, void *args)
       break;
     default:
       fprintf (stdout,
-	       "Called default case in client side for kgni ioctl %llu\n",
+	       "Called default case in client side for kgni ioctl %lu\n",
 	       request);
       break;
     }
   return 0;
 }
 
+int unpack_args (unsigned long int request, void *args);
 
 int
 handle_ioctl (int device, unsigned long int request, void *arg)
@@ -620,8 +759,9 @@ handle_ioctl (int device, unsigned long int request, void *arg)
 int
 unpack_args (unsigned long int request, void *args)
 {
-  gni_nic_setattr_args_t *nic_set_attr;
-  gni_cq_wait_event_args_t *cq_wait_event_args;
+  //gni_nic_setattr_args_t *nic_set_attr;
+  //gni_cq_wait_event_args_t *cq_wait_event_args;
+  pmi2_init_args_t *init_arg;
   switch (request)
     {
     case GNI_IOC_NIC_SETATTR:
@@ -660,86 +800,7 @@ unpack_args (unsigned long int request, void *args)
 
     case GNI_IOC_FMA_SET_PRIVMASK:
       fprintf (stdout, "unpack FMA set PRIVMASK client case\n");
-      break;
-
-    case GNI_IOC_SUBSCRIBE_ERR:
-      fprintf (stdout, "unpack subscribe error client case\n");
-      break;
-    case GNI_IOC_RELEASE_ERR:
-      fprintf (stdout, "unpack Release error client case\n");
-      break;
-    case GNI_IOC_SET_ERR_MASK:
-      fprintf (stdout, "unpack Set Err Mask client case\n");
-      break;
-    case GNI_IOC_GET_ERR_EVENT:
-      fprintf (stdout, "unpack Get Err event client case\n");
-      break;
-    case GNI_IOC_WAIT_ERR_EVENTS:
-      fprintf (stdout, "unpack Wait err event client case\n");
-      break;
-    case GNI_IOC_SET_ERR_PTAG:
-      fprintf (stdout, "unpack EP POSTDATA client case\n");
-      break;
-    case GNI_IOC_CDM_BARR:
-      fprintf (stdout, "unpack CDM BARR client case\n");
-      break;
-    case GNI_IOC_NIC_NTTJOB_CONFIG:
-      fprintf (stdout, "unpack NTT JOBCONFIG client case\n");
-      break;
-    case GNI_IOC_DLA_SETATTR:
-      fprintf (stdout, "unpack DLA SETATTR client case\n");
-      break;
-    case GNI_IOC_VCE_ALLOC:
-      fprintf (stdout, "unpack VCE ALLOC client case\n");
-      break;
-    case GNI_IOC_VCE_FREE:
-      fprintf (stdout, "unpack VCE FREE client case\n");
-      break;
-    case GNI_IOC_VCE_CONFIG:
-      fprintf (stdout, "unpack VCE CONFIG client case\n");
-      break;
-    case GNI_IOC_FLBTE_SETATTR:
-      fprintf (stdout, "unpack FLBTE SETATTR client case\n");
-      break;
-    case GNI_IOC_FMA_ASSIGN:
-      fprintf (stdout, "unpack FMA ASSIGN  client case\n");
-      break;
-    case GNI_IOC_FMA_UMAP:
-      fprintf (stdout, "unpack fma unmap client case\n");
-      break;
-    case GNI_IOC_MEM_QUERY_HNDLS:
-      fprintf (stdout, "unpack mem query hndlclient case\n");
-      break;
-    case GNI_IOC_CQ_CREATE:
-      break;
-    case GNI_IOC_CQ_DESTROY:
-      fprintf (stdout, "unpack CQ destroy  client case\n");
-      break;
-    case GNI_IOC_MEM_REGISTER:
-      break;
-    case GNI_IOC_CQ_WAIT_EVENT:
-      fprintf (stdout, "unpack CQ wait event client case\n");
-      break;
-    case PMI_IOC_ALLGATHER:
-      break;
-    case PMI_IOC_GETRANK:
-      break;
-    case PMI_IOC_GETSIZE:
-      break;
-    case PMI_IOC_FINALIZE:
-      break;
-    case PMI_IOC_BARRIER:
-      break;
-    case PMI_IOC_MALLOC:
-      break;
-    default:
-      fprintf (stdout, "called disconnect in client default\n");
-      //hcq_disconnect (hcq);
-      //hobbes_client_deinit ();
-      break;
+      break; 
+      return 0;
     }
-  //let's print something what we got back in nic_set_attr struct 
-  /* End of NIC SET ATTR */
-  return 0;
-
 }

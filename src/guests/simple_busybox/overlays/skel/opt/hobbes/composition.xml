@@ -1,0 +1,60 @@
+<composition>
+	<!-- what if there's a name space clash between the created enclave and a running enclave? -->
+	<unit comm="simulation">
+		<pisces basename="kitten" num="2">
+			<kernel>/opt/hobbes/vmlwk.bin</kernel>
+			<init_task>/opt/hobbes/lwk_init</init_task>
+			<cmd_line>console=pisces</cmd_line>
+
+			<cpus>
+				<cores>4</cores>
+			</cpus>
+
+			<memory size="512" numa="-1" />
+
+			<devices>
+				<vpci name="nic_1" bus="0" dev="1" fn="0" />
+			</devices>
+		</pisces>
+	</unit>
+
+<!--
+	<unit comm="analytics">
+		<pisces name="">
+			<kernel>/opt/hobbes/vmlinux.bin</kernel>
+			<init_task>/opt/hobbes/lnx_init</init_task>
+			<cmd_line>console=pisces</cmd_line>
+
+			<cpus>
+				<cores>1</cores>
+			</cpus>
+
+			<memory size="512" numa="-1" />
+
+			<devices>
+				<vpci name="nic_1" bus="0" dev="1" fn="0" />
+			</devices>
+		</pisces>
+	</unit>
+-->
+	<jobs num_ranks_global="8">
+		<job num_ranks_global="8">
+			<num_ranks_global>8</num_ranks_global>
+			<initial_allocation>4</initial_allocation>
+			<universe_start_rank>0</universe_start_rank>
+			<job_size>4</job_size>
+			<use_large_pages>0</use_large_pages>
+			<use_smartmap>1</use_smartmap>
+			<heap_size>32000000</heap_size>
+			<stack_size>262144</stack_size>
+			<prealloc_mem>0</prealloc_mem>
+			<envp_str>HELLO="hello world"</envp_str>
+			<exe_path>/opt/hobbes/xhpcg</exe_path>
+			<enclaves>
+				<enclave>kitten-1</enclave>
+				<enclave>kitten-2</enclave>
+			</enclaves>
+		</job>
+	</jobs>
+
+</composition>
